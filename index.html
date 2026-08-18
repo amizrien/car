@@ -61,6 +61,7 @@
       font-size: 14px;
     }
 
+    /* הסתרת הלוגואים והתוויות של גוגל */
     .goog-logo-link, .goog-te-gadget span {
       display: none !important;
     }
@@ -203,6 +204,7 @@
     }
   </style>
 
+  <!-- מנגנון תרגום עם זיהוי אסינכרוני מבוסס MutationObserver -->
   <script type="text/javascript">
     function googleTranslateElementInit() {
       new google.translate.TranslateElement({
@@ -211,14 +213,20 @@
         autoDisplay: false
       }, 'google_translate_element');
 
-      // הפעלת תרגום אוטומטי לעברית
-      setTimeout(() => {
+      // האזנה לשינויים ב-DOM עד שאלמנט הבחירה של גוגל קיים ומוכן
+      const observer = new MutationObserver((mutations, obs) => {
         const select = document.querySelector('.goog-te-combo');
-        if (select) {
+        if (select && select.options.length > 1) {
           select.value = 'he';
           select.dispatchEvent(new Event('change'));
+          obs.disconnect(); // עצירת המעקב ברגע שהופעל התרגום
         }
-      }, 800);
+      });
+
+      observer.observe(document.body, {
+        childList: true,
+        subtree: true
+      });
     }
   </script>
   <script type="text/javascript" src="//translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"></script>
