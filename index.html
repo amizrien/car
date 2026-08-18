@@ -169,6 +169,7 @@
       text-decoration: none;
       color: #475569;
       transition: all 0.2s ease;
+      border: 1px solid #e2e8f0;
     }
 
     .action-btn:hover {
@@ -199,22 +200,6 @@
       margin-bottom: 15px;
       display: block;
       color: #ff4e50;
-    }
-
-    .status-bar {
-      max-width: 1200px;
-      margin: 0 auto 15px auto;
-      text-align: center;
-      font-size: 14px;
-      color: #666;
-      padding: 10px 20px;
-      background: #f0f4f8;
-      border-radius: 6px;
-      display: none;
-    }
-
-    .status-bar.active {
-      display: block;
     }
 
     .translation-progress {
@@ -265,6 +250,29 @@
       opacity: 1;
       transform: scale(1);
     }
+
+    /* Toast notification */
+    .toast {
+      position: fixed;
+      bottom: 30px;
+      left: 50%;
+      transform: translateX(-50%) translateY(100px);
+      background: #1a1a1a;
+      color: #fff;
+      padding: 12px 24px;
+      border-radius: 8px;
+      font-size: 14px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+      opacity: 0;
+      transition: all 0.4s ease;
+      z-index: 9999;
+      pointer-events: none;
+    }
+
+    .toast.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
   </style>
 </head>
 <body>
@@ -295,6 +303,9 @@
     </div>
   </div>
 
+  <!-- Toast notification -->
+  <div class="toast" id="toast"></div>
+
   <script>
     const csvUrl = 'products.csv';
     const usdToIlsRate = 3.70;
@@ -315,7 +326,69 @@
       } catch (err) {
         console.error('שגיאה בתרגום:', err);
       }
-      return text; // אם התרגום נכשל, יוחזר הטקסט המקורי
+      return text;
+    }
+
+    // פונקציה להצגת הודעה
+    function showToast(message, isSuccess = true) {
+      const toast = document.getElementById('toast');
+      toast.textContent = message;
+      toast.style.background = isSuccess ? '#1a1a1a' : '#e74c3c';
+      toast.classList.add('show');
+      
+      setTimeout(() => {
+        toast.classList.remove('show');
+      }, 2500);
+    }
+
+    // פונקציה להעתקת קישור
+    function copyToClipboard(url) {
+      // ניקוי הקישור מתווים מיותרים
+      const cleanUrl = url.trim();
+      
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(cleanUrl).then(() => {
+          showToast('✅ הקישור הועתק בהצלחה!');
+        }).catch(() => {
+          fallbackCopy(cleanUrl);
+        });
+      } else {
+        fallbackCopy(cleanUrl);
+      }
+    }
+
+    // שיטת גיבוי להעתקה
+    function fallbackCopy(text) {
+      const textarea = document.createElement('textarea');
+      textarea.value = text;
+      textarea.style.position = 'fixed';
+      textarea.style.left = '-9999px';
+      textarea.style.top = '-9999px';
+      document.body.appendChild(textarea);
+      
+      try {
+        textarea.select();
+        document.execCommand('copy');
+        showToast('✅ הקישור הועתק בהצלחה!');
+      } catch (err) {
+        showToast('❌ לא הצלחנו להעתיק את הקישור', false);
+        console.error('שגיאת העתקה:', err);
+      } finally {
+        document.body.removeChild(textarea);
+      }
+    }
+
+    // פונקציה לשיתוף ב-WhatsApp
+    function shareToWhatsApp(title, url) {
+      // ניקוי הקישור
+      const cleanUrl = url.trim();
+      // קידוד ההודעה
+      const message = `${title}\n${cleanUrl}`;
+      const encodedMessage = encodeURIComponent(message);
+      const waUrl = `https://api.whatsapp.com/send?text=${encodedMessage}`;
+      
+      // פתיחה בחלון חדש
+      window.open(waUrl, '_blank', 'noopener,noreferrer');
     }
 
     // יצירת כרטיס מוצר
@@ -335,7 +408,9 @@
         priceHTML += `<span class="current-price">₪${priceIls}</span>`;
       }
 
-      const waShareUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(item.title + ' - ' + item.url)}`;
+      // שימוש בפונקציות גלובליות
+      const escapedUrl = item.url.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+      const escapedTitle = item.title.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
 
       card.innerHTML = `
         <img src="${item.image}" alt="${item.title}" loading="lazy" referrerpolicy="no-referrer">
@@ -346,12 +421,12 @@
         </a>
         
         <div class="action-buttons">
-          <button class="action-btn" onclick="copyToClipboard('${item.url}')" title="העתק קישור">
+          <button class="action-btn" onclick="copyToClipboard('${escapedUrl}')" title="העתק קישור">
             <i class="far fa-copy"></i> העתק
           </button>
-          <a href="${waShareUrl}" target="_blank" class="action-btn btn-wa" title="שתף ב-WhatsApp">
+          <button class="action-btn btn-wa" onclick="shareToWhatsApp('${escapedTitle}', '${escapedUrl}')" title="שתף ב-WhatsApp">
             <i class="fab fa-whatsapp"></i> שתף
-          </a>
+          </button>
         </div>
       `;
 
@@ -360,16 +435,14 @@
 
     // הוספת מוצר שיתורגם (מוצג בהדרגה)
     async function addProductWithTranslation(rawItem, index) {
-      // יצירת מוצר עם כותרת מקורית זמנית
       const tempItem = {
         ...rawItem,
         id: index,
-        title: rawItem.rawTitle // כותרת מקורית עד לתרגום
+        title: rawItem.rawTitle
       };
 
-      // יצירת כרטיס והוספה ל-grid
       const card = createProductCard(tempItem);
-      card.classList.add('translating'); // אנימציה שמראה שהמוצר מתורגם
+      card.classList.add('translating');
       
       const container = document.getElementById('products-container');
       container.appendChild(card);
@@ -382,10 +455,11 @@
       titleElement.textContent = translatedTitle;
       titleElement.title = translatedTitle;
       
-      // עדכון קישור WhatsApp עם הכותרת המתורגמת
-      const waLink = card.querySelector('.btn-wa');
-      const waShareUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(translatedTitle + ' - ' + rawItem.url)}`;
-      waLink.href = waShareUrl;
+      // עדכון כפתור השיתוף עם הכותרת המתורגמת
+      const shareBtn = card.querySelector('.btn-wa');
+      const escapedTitle = translatedTitle.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+      const escapedUrl = rawItem.url.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+      shareBtn.setAttribute('onclick', `shareToWhatsApp('${escapedTitle}', '${escapedUrl}')`);
 
       // עדכון המוצר במערך
       const productIndex = allProducts.findIndex(p => p.id === index);
@@ -393,15 +467,12 @@
         allProducts[productIndex].title = translatedTitle;
       }
 
-      // סימון שהתרגום הושלם
       card.classList.remove('translating');
       card.classList.add('translated');
 
-      // עדכון התקדמות
       translatedCount++;
       updateProgress(translatedCount, totalProducts);
 
-      // הסתרת סרגל התקדמות כשכל המוצרים תורגמו
       if (translatedCount === totalProducts) {
         setTimeout(() => {
           document.getElementById('translationProgress').classList.remove('active');
@@ -409,7 +480,6 @@
       }
     }
 
-    // עדכון סרגל התקדמות
     function updateProgress(current, total) {
       const percent = Math.round((current / total) * 100);
       document.getElementById('progressFill').style.width = percent + '%';
@@ -459,7 +529,7 @@
               image, 
               price, 
               oldPrice,
-              title: rawTitle // placeholder זמני
+              title: rawTitle
             });
           }
         }
@@ -472,24 +542,20 @@
           return;
         }
 
-        // ניקוי ה-loading
         const container = document.getElementById('products-container');
         container.innerHTML = '';
 
-        // הצגת סרגל התקדמות
         const progressContainer = document.getElementById('translationProgress');
         progressContainer.classList.add('active');
         document.getElementById('translationStatus').textContent = `מתרגם מוצרים לעברית... (0/${totalProducts})`;
         document.getElementById('progressFill').style.width = '0%';
         document.getElementById('progressText').textContent = '0%';
 
-        // הוספת כל המוצרים למערך
         allProducts = rawProducts.map((item, index) => ({
           ...item,
           id: index
         }));
 
-        // התחלת תרגום כל מוצר בנפרד - כל מוצר יופיע מיד אחרי התרגום
         for (let i = 0; i < rawProducts.length; i++) {
           await addProductWithTranslation(rawProducts[i], i);
         }
@@ -512,21 +578,6 @@
         } else {
           card.style.display = 'none';
         }
-      });
-    }
-
-    function copyToClipboard(text) {
-      navigator.clipboard.writeText(text).then(() => {
-        alert('הקישור הועתק בהצלחה!');
-      }).catch(() => {
-        // fallback
-        const textarea = document.createElement('textarea');
-        textarea.value = text;
-        document.body.appendChild(textarea);
-        textarea.select();
-        document.execCommand('copy');
-        document.body.removeChild(textarea);
-        alert('הקישור הועתק בהצלחה!');
       });
     }
 
