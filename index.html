@@ -1,451 +1,185 @@
 <!DOCTYPE html>
 <html lang="he" dir="rtl">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>קטלוג הדילים והמבצעים - AliExpress Affiliate</title>
-    <!-- PapaParse לקריאת קובצי CSV -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
-    <style>
-        :root {
-            --primary-color: #ff4747;
-            --primary-hover: #d93838;
-            --bg-color: #f4f5f7;
-            --card-bg: #ffffff;
-            --text-color: #222222;
-            --secondary-text: #666666;
-            --price-color: #e62e04;
-            --whatsapp-color: #25d366;
-            --telegram-color: #0088cc;
-        }
+  <meta charset="UTF-8">
+  <title>קטלוג מוצרים</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f4f6f8;
+      margin: 0;
+      padding: 20px;
+    }
 
-        body {
-            font-family: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            background-color: var(--bg-color);
-            color: var(--text-color);
-            margin: 0;
-            padding: 20px;
-            direction: rtl;
-            text-align: right;
-        }
+    .products-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      gap: 20px;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
 
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-        }
+    .product-card {
+      background: #fff;
+      border: 1px solid #e0e0e0;
+      border-radius: 8px;
+      padding: 15px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+      transition: transform 0.2s ease;
+    }
 
-        header {
-            text-align: center;
-            margin-bottom: 25px;
-        }
+    .product-card:hover {
+      transform: translateY(-3px);
+    }
 
-        h1 {
-            margin: 0 0 10px 0;
-            font-size: 28px;
-            color: #111;
-        }
+    .product-card img {
+      width: 100%;
+      height: 180px;
+      object-fit: contain;
+      border-radius: 4px;
+      margin-bottom: 10px;
+    }
 
-        p.subtitle {
-            margin: 0;
-            color: var(--secondary-text);
-            font-size: 15px;
-        }
+    .product-title {
+      font-size: 14px;
+      font-weight: bold;
+      color: #333;
+      margin-bottom: 10px;
+      line-height: 1.3;
+      height: 38px;
+      overflow: hidden;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+    }
 
-        .controls {
-            display: flex;
-            gap: 12px;
-            margin-bottom: 25px;
-            flex-wrap: wrap;
-            align-items: center;
-            background: #fff;
-            padding: 15px;
-            border-radius: 12px;
-            box-shadow: 0 2px 6px rgba(0,0,0,0.05);
-        }
+    .price-container {
+      margin-bottom: 12px;
+      font-size: 16px;
+    }
 
-        input[type="text"] {
-            padding: 12px 16px;
-            border: 1px solid #ddd;
-            border-radius: 8px;
-            font-size: 15px;
-            flex: 1;
-            min-width: 220px;
-            outline: none;
-            transition: border-color 0.2s;
-        }
+    .old-price {
+      text-decoration: line-through;
+      color: #888;
+      font-size: 13px;
+      margin-left: 6px;
+    }
 
-        input[type="text"]:focus {
-            border-color: var(--primary-color);
-        }
+    .current-price {
+      color: #e62e04;
+      font-weight: bold;
+    }
 
-        .stats-bar {
-            margin-bottom: 15px;
-            font-size: 14px;
-            color: var(--secondary-text);
-        }
+    .buy-btn {
+      display: block;
+      text-align: center;
+      background-color: #ff4747;
+      color: #fff;
+      text-decoration: none;
+      padding: 8px 12px;
+      border-radius: 4px;
+      font-weight: bold;
+      transition: background-color 0.2s;
+    }
 
-        /* מנגנון טעינה (Loader) */
-        .loading-container {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            padding: 60px 20px;
-            text-align: center;
-        }
-
-        .spinner {
-            width: 48px;
-            height: 48px;
-            border: 5px solid #FFF;
-            border-bottom-color: var(--primary-color);
-            border-radius: 50%;
-            display: inline-block;
-            box-sizing: border-box;
-            animation: rotation 1s linear infinite;
-            margin-bottom: 15px;
-        }
-
-        @keyframes rotation {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-
-        .grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-            gap: 20px;
-        }
-
-        .card {
-            background: var(--card-bg);
-            border-radius: 12px;
-            padding: 15px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-            display: flex;
-            flex-direction: column;
-            justify-content: space-between;
-            transition: transform 0.2s, box-shadow 0.2s;
-        }
-
-        .card:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 4px 12px rgba(0,0,0,0.12);
-        }
-
-        .card-img-wrap {
-            width: 100%;
-            height: 180px;
-            overflow: hidden;
-            border-radius: 8px;
-            background: #f0f0f0;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .card img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-        }
-
-        .card h3 {
-            font-size: 14px;
-            margin: 12px 0 8px 0;
-            height: 40px;
-            overflow: hidden;
-            display: -webkit-box;
-            -webkit-line-clamp: 2;
-            -webkit-box-orient: vertical;
-            color: #333;
-            line-height: 1.4;
-        }
-
-        .price-wrap {
-            display: flex;
-            align-items: baseline;
-            gap: 8px;
-            margin-bottom: 12px;
-        }
-
-        .price {
-            font-size: 19px;
-            font-weight: bold;
-            color: var(--price-color);
-        }
-
-        .original-price {
-            font-size: 13px;
-            color: #999;
-            text-decoration: line-through;
-        }
-
-        .action-buttons {
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-        }
-
-        .btn {
-            display: block;
-            text-align: center;
-            background: var(--primary-color);
-            color: #fff;
-            padding: 10px;
-            text-decoration: none;
-            border-radius: 6px;
-            font-weight: bold;
-            font-size: 14px;
-            transition: background 0.2s;
-            border: none;
-            cursor: pointer;
-        }
-
-        .btn:hover { background: var(--primary-hover); }
-
-        .share-row {
-            display: flex;
-            gap: 6px;
-        }
-
-        .btn-share {
-            flex: 1;
-            padding: 8px;
-            font-size: 12px;
-            font-weight: bold;
-            border: none;
-            border-radius: 6px;
-            cursor: pointer;
-            color: white;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 4px;
-            transition: opacity 0.2s;
-        }
-
-        .btn-share:hover { opacity: 0.9; }
-
-        .btn-whatsapp { background-color: var(--whatsapp-color); }
-        .btn-telegram { background-color: var(--telegram-color); }
-        .btn-copy { background-color: #6c757d; }
-
-        .toast {
-            position: fixed;
-            bottom: 20px;
-            right: 50%;
-            transform: translateX(50%);
-            background: rgba(0,0,0,0.85);
-            color: white;
-            padding: 10px 20px;
-            border-radius: 20px;
-            font-size: 14px;
-            display: none;
-            z-index: 1000;
-        }
-    </style>
+    .buy-btn:hover {
+      background-color: #e03232;
+    }
+  </style>
 </head>
 <body>
 
-<div class="container">
-    <header>
-        <h1>🔥 קטלוג המבצעים והדילים</h1>
-        <p class="subtitle">הדילים הכי שווים ב-AliExpress מתעדכנים פה בלייב</p>
-    </header>
-    
-    <div class="controls">
-        <input type="text" id="search" placeholder="חפש מוצר..." oninput="filterProducts()">
-    </div>
+  <div id="products-container" class="products-grid">
+    <p>טוען מוצרים...</p>
+  </div>
 
-    <div id="stats-bar" class="stats-bar"></div>
+  <script>
+    // הנתיב לקובץ ה-CSV ב-GitHub (חובה לקשר לגרסת Raw)
+    const csvUrl = 'products.csv';
 
-    <!-- אלמנט טעינה שמוצג בזמן התרגום -->
-    <div id="loader" class="loading-container">
-        <span class="spinner"></span>
-        <h3 id="loader-status">טוען ומתרגם את הדילים לעברית...</h3>
-    </div>
+    async function loadProducts() {
+      try {
+        const response = await fetch(csvUrl);
+        const text = await response.text();
 
-    <div id="product-grid" class="grid" style="display: none;"></div>
-</div>
+        // פירוק שורות הקובץ
+        const lines = text.trim().split('\n');
+        if (lines.length <= 1) return;
 
-<div id="toast" class="toast">הקישור הועתק בהצלחה!</div>
+        const container = document.getElementById('products-container');
+        container.innerHTML = ''; // ניקוי הודעת הטעינה
 
-<script>
-    const CSV_FILE_PATH = 'products.csv';
-    let allProducts = [];
+        // דילוג על שורת הכותרת (i = 1)
+        for (let i = 1; i < lines.length; i++) {
+          const line = lines[i].trim();
+          if (!line) continue;
 
-    window.addEventListener('DOMContentLoaded', () => {
-        Papa.parse(CSV_FILE_PATH, {
-            download: true,
-            header: true,
-            skipEmptyLines: true,
-            complete: async function(results) {
-                allProducts = results.data;
-                
-                // טעינת תרגומים קודמים מהזיכרון המקומי
-                loadCachedTranslations();
-                
-                // תרגום מוצרים שלא תורגמו עדיין
-                await translateAllProducts();
+          // פירוק לפי נקודה-פסיק (התחשבות בערכים עם מירכאות)
+          const cols = parseCsvLine(line, ';');
 
-                // הסתרת ה-Loader והצגת הגריד המלא
-                document.getElementById('loader').style.display = 'none';
-                document.getElementById('product-grid').style.display = 'grid';
-                document.getElementById('stats-bar').innerText = `מוצגים ${allProducts.slice(0, 100).length} מוצרים מתורגמים`;
-                
-                renderProducts(allProducts);
-            },
-            error: function(err) {
-                document.getElementById('loader-status').innerText = 'שגיאה בטעינת הקובץ products.csv מ-GitHub';
-                console.error(err);
-            }
-        });
-    });
+          const title = cols[1];
+          const url = cols[2];
+          const currency = cols[4] || '$';
+          const image = cols[6];
+          const oldPrice = cols[7];
+          const price = cols[8];
 
-    function getFieldValue(item, possibleKeys) {
-        if (!item) return '';
-        const itemKeys = Object.keys(item);
-        for (let key of possibleKeys) {
-            const foundKey = itemKeys.find(k => k.trim().toLowerCase() === key.trim().toLowerCase());
-            if (foundKey && item[foundKey] && item[foundKey].toString().trim() !== '') {
-                return item[foundKey].toString().trim();
-            }
+          if (!title || !url) continue;
+
+          // יצירת הכרטיסייה
+          const card = document.createElement('div');
+          card.className = 'product-card';
+
+          const currencySymbol = currency === 'USD' ? '$' : currency;
+
+          let priceHTML = '';
+          if (oldPrice && parseFloat(oldPrice) > parseFloat(price)) {
+            priceHTML = `<span class="old-price">${currencySymbol}${oldPrice}</span> `;
+          }
+          priceHTML += `<span class="current-price">${currencySymbol}${price}</span>`;
+
+          card.innerHTML = `
+            <img src="${image}" alt="${title}" loading="lazy">
+            <div class="product-title" title="${title}">${title}</div>
+            <div class="price-container">${priceHTML}</div>
+            <a href="${url}" target="_blank" rel="nofollow" class="buy-btn">לצפייה במוצר</a>
+          `;
+
+          container.appendChild(card);
         }
-        return '';
+      } catch (err) {
+        console.error('שגיאה שטעינת הקובץ:', err);
+        document.getElementById('products-container').innerHTML = '<p>אירעה שגיאה בטעינת המוצרים.</p>';
+      }
     }
 
-    function renderProducts(products) {
-        const grid = document.getElementById('product-grid');
-        grid.innerHTML = '';
+    // פונקציית עזר לניתוח שורת CSV לפי מפריד מותאם אישית
+    function parseCsvLine(line, delimiter) {
+      const values = [];
+      let currentValue = '';
+      let insideQuotes = false;
 
-        if (products.length === 0) {
-            grid.innerHTML = '<p style="grid-column: 1/-1; text-align: center; color: #777;">לא נמצאו מוצרים.</p>';
-            return;
+      for (let i = 0; i < line.length; i++) {
+        const char = line[i];
+
+        if (char === '"') {
+          insideQuotes = !insideQuotes;
+        } else if (char === delimiter && !insideQuotes) {
+          values.push(currentValue.replace(/^"|"$/g, '').trim());
+          currentValue = '';
+        } else {
+          currentValue += char;
         }
-
-        products.slice(0, 100).forEach((item, index) => {
-            const title = item.translated_title || getFieldValue(item, ['Product Desc', 'Product Description', 'Product Title', 'title', 'Product Name']) || 'מוצר ללא שם';
-            const image = getFieldValue(item, ['Image Url', 'Product Image URL', 'image_url', 'ImageUrl']);
-            const price = getFieldValue(item, ['Discount Price', 'Discount', 'Target Sale Price', 'price']);
-            const origPrice = getFieldValue(item, ['Origin Price', 'Original Price']);
-            const promotionUrl = getFieldValue(item, ['Promotion Link', 'Direct Link', 'Promotion Url', 'link', 'URL']) || '#';
-
-            const cleanPrice = price ? price.toString().replace(/ILS|\$|₪/gi, '').trim() : '';
-            const cleanOrigPrice = origPrice ? origPrice.toString().replace(/ILS|\$|₪/gi, '').trim() : '';
-
-            const formattedPrice = cleanPrice ? `₪${cleanPrice}` : '';
-            const formattedOrigPrice = cleanOrigPrice ? `₪${cleanOrigPrice}` : '';
-
-            const shareText = `🔥 **דיל שווה ב-AliExpress!**\n🛍️ ${title}\n💰 מחיר: ${formattedPrice}\n👉 לרכישה: ${promotionUrl}`;
-
-            const card = document.createElement('div');
-            card.className = 'card';
-            card.innerHTML = `
-                <div>
-                    <div class="card-img-wrap">
-                        ${image ? `<img src="${image}" alt="${title}" loading="lazy">` : '<span>אין תמונה</span>'}
-                    </div>
-                    <h3 id="title-${index}">${title}</h3>
-                </div>
-                <div>
-                    <div class="price-wrap">
-                        <span class="price">${formattedPrice}</span>
-                        ${formattedOrigPrice ? `<span class="original-price">${formattedOrigPrice}</span>` : ''}
-                    </div>
-                    <div class="action-buttons">
-                        <a href="${promotionUrl}" target="_blank" rel="nofollow sponsored" class="btn">לרכישה באליאקספרס</a>
-                        <div class="share-row">
-                            <button class="btn-share btn-whatsapp" onclick="shareWhatsApp('${escapeJs(title)}', '${formattedPrice}', '${promotionUrl}')">WhatsApp</button>
-                            <button class="btn-share btn-telegram" onclick="shareTelegram('${escapeJs(title)}', '${formattedPrice}', '${promotionUrl}')">Telegram</button>
-                            <button class="btn-share btn-copy" onclick="copyShareText('${escapeJs(shareText)}')">העתק</button>
-                        </div>
-                    </div>
-                </div>
-            `;
-            grid.appendChild(card);
-        });
+      }
+      values.push(currentValue.replace(/^"|"$/g, '').trim());
+      return values;
     }
 
-    function loadCachedTranslations() {
-        const cache = localStorage.getItem('product_translations');
-        if (cache) {
-            const translations = JSON.parse(cache);
-            allProducts.forEach(item => {
-                const orig = getFieldValue(item, ['Product Desc', 'Product Description', 'Product Title', 'title']);
-                if (translations[orig]) {
-                    item.translated_title = translations[orig];
-                }
-            });
-        }
-    }
-
-    async function translateAllProducts() {
-        const cache = JSON.parse(localStorage.getItem('product_translations') || '{}');
-        const itemsToTranslate = allProducts.slice(0, 100);
-        let updated = false;
-
-        for (let i = 0; i < itemsToTranslate.length; i++) {
-            const item = itemsToTranslate[i];
-            const originalTitle = getFieldValue(item, ['Product Desc', 'Product Description', 'Product Title', 'title']);
-            
-            if (originalTitle && !item.translated_title) {
-                try {
-                    document.getElementById('loader-status').innerText = `מתרגם מוצר ${i + 1} מתוך ${itemsToTranslate.length}...`;
-                    const shortTitle = originalTitle.split(' ').slice(0, 12).join(' ');
-                    const res = await fetch(`https://api.mymemory.translated.net/get?q=${encodeURIComponent(shortTitle)}&langpair=en|he`);
-                    const data = await res.json();
-                    
-                    if (data && data.responseData && data.responseData.translatedText) {
-                        item.translated_title = data.responseData.translatedText;
-                        cache[originalTitle] = item.translated_title;
-                        updated = true;
-                    }
-                } catch (e) {
-                    console.error('שגיאה בתרגום מוצר', e);
-                }
-            }
-        }
-
-        if (updated) {
-            localStorage.setItem('product_translations', JSON.stringify(cache));
-        }
-    }
-
-    function filterProducts() {
-        const query = document.getElementById('search').value.toLowerCase();
-        const filtered = allProducts.filter(p => {
-            const title = (p.translated_title || getFieldValue(p, ['Product Desc', 'Product Description', 'Product Title', 'title'])).toLowerCase();
-            return title.includes(query);
-        });
-        renderProducts(filtered);
-    }
-
-    function escapeJs(str) {
-        return str.replace(/'/g, "\\'").replace(/"/g, '&quot;').replace(/\n/g, ' ');
-    }
-
-    function shareWhatsApp(title, price, url) {
-        const text = `🔥 *דיל שווה ב-AliExpress!*\n\n🛍️ ${title}\n💰 מחיר: ${price}\n\n👉 לרכישה: ${url}`;
-        window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`, '_blank');
-    }
-
-    function shareTelegram(title, price, url) {
-        const text = `🔥 **דיל שווה ב-AliExpress!**\n\n🛍️ ${title}\n💰 מחיר: ${price}\n\n👉 לרכישה: ${url}`;
-        window.open(`https://t.me/share/url?url=${encodeURIComponent(url)}&text=${encodeURIComponent(text)}`, '_blank');
-    }
-
-    function copyShareText(text) {
-        navigator.clipboard.writeText(text).then(() => showToast("הטקסט והקישור הועתקו ללוח!"));
-    }
-
-    function showToast(msg) {
-        const toast = document.getElementById('toast');
-        toast.innerText = msg;
-        toast.style.display = 'block';
-        setTimeout(() => toast.style.display = 'none', 2500);
-    }
-</script>
-
+    // הפעלת הטעינה בזמן עליית הדף
+    document.addEventListener('DOMContentLoaded', loadProducts);
+  </script>
 </body>
 </html>
