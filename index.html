@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" dir="rtl">
+<html lang="he" dir="rtl">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -7,19 +7,12 @@
   
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
-  <script>
-    // הגדרת עוגיית התרגום של גוגל מ-אנגלית ל-עברית לפני טעינת הרכיב
-    document.cookie = "googtrans=/en/he; path=/";
-    document.cookie = "googtrans=/en/he; domain=" + window.location.hostname + "; path=/";
-  </script>
-
   <style>
     body {
       font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
       background-color: #f4f6f8;
       margin: 0;
       padding: 20px;
-      top: 0 !important; /* מונע מגוגל לדחוף את העמוד למטה */
     }
 
     .main-header {
@@ -55,18 +48,6 @@
       font-size: 14px;
       box-sizing: border-box;
       background: #fff;
-    }
-
-    /* הסתרת הסרגל של גוגל אל מחוץ למסך במקום display:none */
-    #google_translate_element {
-      position: absolute;
-      left: -9999px;
-      top: -9999px;
-      visibility: hidden;
-    }
-
-    .goog-te-banner-frame, .goog-te-balloon-frame, iframe.goog-te-menu-frame {
-      display: none !important;
     }
 
     .products-grid {
@@ -196,21 +177,8 @@
       color: #0e6251;
     }
   </style>
-
-  <script type="text/javascript">
-    function googleTranslateElementInit() {
-      new google.translate.TranslateElement({
-        pageLanguage: 'en',
-        layout: google.translate.TranslateElement.InlineLayout.SIMPLE,
-        autoDisplay: false
-      }, 'google_translate_element');
-    }
-  </script>
-  <script type="text/javascript" src="//translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"></script>
 </head>
 <body>
-
-  <div id="google_translate_element"></div>
 
   <div class="main-header">
     <h1>קטלוג מוצרים מומלצים</h1>
@@ -223,13 +191,29 @@
   </div>
 
   <div id="products-container" class="products-grid">
-    <p>טוען מוצרים...</p>
+    <p>טוען מוצרים ומתרגם לעברית...</p>
   </div>
 
   <script>
     const csvUrl = 'products.csv';
     const usdToIlsRate = 3.70;
     let allProducts = [];
+
+    // פונקציית תרגום פשוטה וישירה דרך ה-API החופשי של גוגל
+    async function translateText(text) {
+      if (!text) return text;
+      try {
+        const url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=en&tl=he&dt=t&q=${encodeURIComponent(text)}`;
+        const res = await fetch(url);
+        const data = await res.json();
+        if (data && data[0]) {
+          return data[0].map(item => item[0]).join('');
+        }
+      } catch (err) {
+        console.error('שגיאה בתרגום:', err);
+      }
+      return text; // אם התרגום נכשל, יוחזר הטקסט המקורי
+    }
 
     async function loadProducts() {
       try {
@@ -255,13 +239,15 @@
 
           const cols = parseCsvLine(line, ';');
 
-          const title = cols[titleIdx];
+          const rawTitle = cols[titleIdx];
           const url = cols[urlIdx];
           const image = cols[imageIdx];
           const price = cols[priceIdx];
           const oldPrice = oldPriceIdx !== -1 ? cols[oldPriceIdx] : '';
 
-          if (title && url && image) {
+          if (rawTitle && url && image) {
+            // תרגום הכותרת לעברית בזמן אמת
+            const title = await translateText(rawTitle);
             allProducts.push({ title, url, image, price, oldPrice });
           }
         }
