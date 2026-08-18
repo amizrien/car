@@ -319,16 +319,18 @@
         }
 
         products.slice(0, 100).forEach((item, index) => {
-            // בודקים אם יש כבר תרגום לעברית, אם לא - משתמשים בשם המקורי
             const title = item.translated_title || getFieldValue(item, ['Product Desc', 'Product Description', 'Product Title', 'title', 'Product Name']) || 'מוצר ללא שם';
             const image = getFieldValue(item, ['Image Url', 'Product Image URL', 'image_url', 'ImageUrl']);
             const price = getFieldValue(item, ['Discount Price', 'Discount', 'Target Sale Price', 'price']);
             const origPrice = getFieldValue(item, ['Origin Price', 'Original Price']);
-            const currency = getFieldValue(item, ['Currency']) || 'ILS';
             const promotionUrl = getFieldValue(item, ['Promotion Link', 'Direct Link', 'Promotion Url', 'link', 'URL']) || '#';
 
-            const formattedPrice = price ? `${price} ${currency}` : '';
-            const formattedOrigPrice = origPrice ? `${origPrice} ${currency}` : '';
+            // מנקה סימני מטבע קודמים כמו ILS או $ במידה שקיימים במחיר מה-CSV ומציג ₪
+            const cleanPrice = price ? price.toString().replace(/ILS|\$|₪/gi, '').trim() : '';
+            const cleanOrigPrice = origPrice ? origPrice.toString().replace(/ILS|\$|₪/gi, '').trim() : '';
+
+            const formattedPrice = cleanPrice ? `₪${cleanPrice}` : '';
+            const formattedOrigPrice = cleanOrigPrice ? `₪${cleanOrigPrice}` : '';
 
             const shareText = `🔥 **דיל שווה ב-AliExpress!**\n🛍️ ${title}\n💰 מחיר: ${formattedPrice}\n👉 לרכישה: ${promotionUrl}`;
 
@@ -360,11 +362,10 @@
         });
     }
 
-    // מנגנון תרגום אוטומטי
     async function translateAllProducts() {
         const btn = document.getElementById('translate-btn');
         btn.disabled = true;
-        btn.innerText = 'מחרגם... אנא המתן';
+        btn.innerText = 'מתרגם... אנא המתן';
 
         const itemsToTranslate = allProducts.slice(0, 100);
 
@@ -374,15 +375,12 @@
             
             if (originalTitle && !item.translated_title) {
                 try {
-                    // קיצוץ כותרת ארוכה מדי לתרגום מהיר יותר
                     const shortTitle = originalTitle.split(' ').slice(0, 12).join(' ');
                     const res = await fetch(`https://api.mymemory.translated.net/get?q=${encodeURIComponent(shortTitle)}&langpair=en|he`);
                     const data = await res.json();
                     
                     if (data && data.responseData && data.responseData.translatedText) {
                         item.translated_title = data.responseData.translatedText;
-                        const titleEl = document.getElementById(`title-${i}`);
-                        if (titleEl) titleEl.innerText = item.translated_title;
                     }
                 } catch (e) {
                     console.error('שגיאה בתרגום מוצר', e);
@@ -392,6 +390,8 @@
 
         btn.disabled = false;
         btn.innerText = '✔ המוצרים תורגמו!';
+        
+        // ממרנדר מחדש את הכל כדי שגם כפתורי השיתוף יכילו את הטקסט בעברית
         renderProducts(allProducts);
     }
 
