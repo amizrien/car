@@ -43,11 +43,17 @@
     .search-box input {
       width: 100%;
       padding: 10px 15px;
-      border: 1px solid #ccc;
-      border-radius: 6px;
+      border: 1px solid #ddd;
+      border-radius: 8px;
       font-size: 14px;
       box-sizing: border-box;
       background: #fff;
+      outline: none;
+      transition: all 0.3s ease;
+    }
+    .search-box input:focus {
+      border-color: #ff4e50;
+      box-shadow: 0 0 0 3px rgba(255, 78, 80, 0.1);
     }
 
     .products-grid {
@@ -71,11 +77,12 @@
       opacity: 0;
       transform: translateY(20px);
       animation: fadeInUp 0.4s ease forwards;
+      position: relative;
     }
 
     .product-card:hover {
       transform: translateY(-4px);
-      box-shadow: 0 8px 20px rgba(0,0,0,0.08);
+      box-shadow: 0 8px 25px rgba(0,0,0,0.08);
     }
 
     @keyframes fadeInUp {
@@ -91,6 +98,11 @@
       object-fit: contain;
       border-radius: 6px;
       margin-bottom: 12px;
+      cursor: pointer;
+      transition: transform 0.3s ease;
+    }
+    .product-card img:hover {
+      transform: scale(1.03);
     }
 
     .product-title {
@@ -111,6 +123,7 @@
       font-size: 18px;
       text-align: center;
       font-weight: bold;
+      min-height: 30px;
     }
 
     .old-price {
@@ -125,67 +138,70 @@
       color: #e74c3c;
     }
 
-    .buy-btn {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 8px;
-      background: linear-gradient(135deg, #ff4e50, #f9d423);
-      color: #fff;
-      text-decoration: none;
-      padding: 10px 14px;
-      border-radius: 8px;
-      font-weight: bold;
-      font-size: 15px;
-      margin-bottom: 10px;
-      box-shadow: 0 3px 6px rgba(255, 78, 80, 0.2);
-      transition: all 0.2s ease;
-    }
-
-    .buy-btn:hover {
-      opacity: 0.95;
-      transform: scale(1.01);
-      box-shadow: 0 4px 10px rgba(255, 78, 80, 0.3);
-    }
-
-    .action-buttons {
+    /* כפתורים מעוצבים מחדש */
+    .btn-row {
       display: flex;
       gap: 8px;
+      margin-bottom: 8px;
     }
-
-    .action-btn {
+    
+    .btn-row .btn {
       flex: 1;
-      padding: 8px 10px;
-      border: 1px solid #e2e8f0;
-      background-color: #f8fafc;
-      border-radius: 6px;
+      padding: 10px 8px;
+      border-radius: 8px;
+      font-weight: 600;
+      font-size: 14px;
+      border: none;
       cursor: pointer;
-      font-size: 13px;
-      font-weight: 500;
+      text-decoration: none;
       display: flex;
       align-items: center;
       justify-content: center;
       gap: 6px;
-      text-decoration: none;
-      color: #475569;
       transition: all 0.2s ease;
-      border: 1px solid #e2e8f0;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.05);
     }
 
-    .action-btn:hover {
-      background-color: #f1f5f9;
-      border-color: #cbd5e1;
+    .btn-shop {
+      background: linear-gradient(135deg, #ff4e50, #f9d423);
+      color: #fff;
+      width: 100%;
+      box-shadow: 0 3px 6px rgba(255, 78, 80, 0.3);
+    }
+    .btn-shop:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(255, 78, 80, 0.4);
+    }
+
+    .btn-video {
+      background: linear-gradient(135deg, #e44d26, #f7971e);
+      color: #fff;
+      box-shadow: 0 3px 6px rgba(228, 77, 38, 0.3);
+    }
+    .btn-video:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(228, 77, 38, 0.4);
+    }
+
+    .btn-action {
+      background: #f1f5f9;
+      color: #475569;
+      border: 1px solid #e2e8f0;
+    }
+    .btn-action:hover {
+      background: #e2e8f0;
+      transform: translateY(-2px);
     }
 
     .btn-wa {
+      background: #e8f8f5;
       color: #128c7e;
-      background-color: #e8f8f5;
-      border-color: #d1f2eb;
+      border: 1px solid #d1f2eb;
     }
-
     .btn-wa:hover {
-      background-color: #d4efdf;
+      background: #d4efdf;
       color: #0e6251;
+      transform: translateY(-2px);
     }
 
     .loading-spinner {
@@ -338,16 +354,21 @@
       }, 2500);
     }
 
-    // פונקציות העתקה ושיתוף
-    function copyToClipboard(url) {
+    // ======================================
+    // פונקציות שיתוף והעתקה חכמות
+    // ======================================
+
+    // העתקה: שם + קישור
+    function copyToClipboard(title, url) {
+      const textToCopy = `${title}\n${url}`;
       if (navigator.clipboard && navigator.clipboard.writeText) {
-        navigator.clipboard.writeText(url).then(() => {
-          showToast('✅ הקישור הועתק!');
+        navigator.clipboard.writeText(textToCopy).then(() => {
+          showToast('✅ שם המוצר והקישור הועתקו!');
         }).catch(() => {
-          fallbackCopy(url);
+          fallbackCopy(textToCopy);
         });
       } else {
-        fallbackCopy(url);
+        fallbackCopy(textToCopy);
       }
     }
 
@@ -362,7 +383,7 @@
       try {
         textarea.select();
         document.execCommand('copy');
-        showToast('✅ הקישור הועתק!');
+        showToast('✅ שם המוצר והקישור הועתקו!');
       } catch (err) {
         showToast('❌ לא הצלחנו להעתיק', false);
         console.error('שגיאת העתקה:', err);
@@ -371,54 +392,71 @@
       }
     }
 
+    // שיתוף: שם + קישור למוצר (לא וידאו)
     function shareToWhatsApp(title, url) {
       const message = `${title}\n${url}`;
       const encodedMessage = encodeURIComponent(message);
       const waUrl = `https://api.whatsapp.com/send?text=${encodedMessage}`;
-      
       window.open(waUrl, '_blank', 'noopener,noreferrer');
     }
+
+    // ======================================
 
     function createProductCard(item) {
       const card = document.createElement('div');
       card.className = 'product-card';
       card.dataset.productId = item.id;
 
+      // מחירים
       let priceHTML = '';
-
-      // אם יש מחיר מוזל, מציגים אותו עם מחיר מקורי מחוק
-      if (item.discountPrice && item.discountPrice !== item.originPrice) {
+      if (item.discountPrice && item.originPrice && item.discountPrice !== item.originPrice) {
         priceHTML = `
           <span class="old-price">₪${item.originPrice}</span> 
           <span class="current-price">₪${item.discountPrice}</span>
         `;
-      } 
-      // אם אין מבצע, מציגים מחיר רגיל
-      else if (item.originPrice) {
+      } else if (item.originPrice) {
         priceHTML = `<span class="current-price">₪${item.originPrice}</span>`;
-      } 
-      // אם אין בכלל מחיר
-      else {
+      } else {
         priceHTML = `<span style="font-size:16px;color:#555;">צפה במוצר</span>`;
       }
 
+      // קישור לווידאו (אם קיים)
+      let videoBtnHTML = '';
+      if (item.videoUrl) {
+        videoBtnHTML = `
+          <a href="${item.videoUrl}" target="_blank" rel="nofollow" class="btn btn-video">
+            <i class="fas fa-video"></i> וידאו
+          </a>
+        `;
+      } else {
+        videoBtnHTML = `<div style="flex:1;"></div>`; // מקום ריק לשמירה על יישור
+      }
+
+      // הכנה להעברה ב-JS
       const escapedUrl = item.url.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
       const escapedTitle = item.title.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+      const escapedVideoUrl = item.videoUrl ? item.videoUrl.replace(/\\/g, '\\\\').replace(/'/g, "\\'") : '';
 
       card.innerHTML = `
-        <img src="${item.image}" alt="${item.title}" loading="lazy" referrerpolicy="no-referrer">
+        <a href="${item.url}" target="_blank" rel="nofollow" style="display:block; text-decoration:none;">
+          <img src="${item.image}" alt="${item.title}" loading="lazy" referrerpolicy="no-referrer">
+        </a>
         <div class="product-title" title="${item.title}">${item.title}</div>
         <div class="price-container">${priceHTML}</div>
-        <a href="${item.url}" target="_blank" rel="nofollow" class="buy-btn">
-          <i class="fas fa-shopping-cart"></i> לצפייה במוצר
-        </a>
         
-        <div class="action-buttons">
-          <button class="action-btn" onclick="copyToClipboard('${escapedUrl}')" title="העתק קישור">
-            <i class="far fa-copy"></i> העתק
+        <div class="btn-row">
+          ${videoBtnHTML}
+          <a href="${item.url}" target="_blank" rel="nofollow" class="btn btn-shop">
+            <i class="fas fa-shopping-cart"></i> לקנייה
+          </a>
+        </div>
+
+        <div class="btn-row">
+          <button class="btn btn-action" onclick="copyToClipboard('${escapedTitle}', '${escapedUrl}')" title="העתק שם + קישור">
+            <i class="far fa-copy"></i> העתקה
           </button>
-          <button class="action-btn btn-wa" onclick="shareToWhatsApp('${escapedTitle}', '${escapedUrl}')" title="שתף ב-WhatsApp">
-            <i class="fab fa-whatsapp"></i> שתף
+          <button class="btn btn-wa" onclick="shareToWhatsApp('${escapedTitle}', '${escapedUrl}')" title="שתף בוואטסאפ">
+            <i class="fab fa-whatsapp"></i> שיתוף
           </button>
         </div>
       `;
@@ -445,10 +483,15 @@
       titleElement.textContent = translatedTitle;
       titleElement.title = translatedTitle;
       
-      const shareBtn = card.querySelector('.btn-wa');
+      // עדכון הפונקציות בשביל הכפתורים עם השם המתורגם
       const escapedTitle = translatedTitle.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
       const escapedUrl = rawItem.url.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
-      shareBtn.setAttribute('onclick', `shareToWhatsApp('${escapedTitle}', '${escapedUrl}')`);
+      
+      const copyBtn = card.querySelector('.btn-action');
+      copyBtn.setAttribute('onclick', `copyToClipboard('${escapedTitle}', '${escapedUrl}')`);
+      
+      const waBtn = card.querySelector('.btn-wa');
+      waBtn.setAttribute('onclick', `shareToWhatsApp('${escapedTitle}', '${escapedUrl}')`);
 
       const productIndex = allProducts.findIndex(p => p.id === index);
       if (productIndex !== -1) {
@@ -488,11 +531,11 @@
         const lines = text.trim().split(/\r?\n/);
         if (lines.length <= 1) return;
 
-        // פארסר המעודכן לקובץ האמיתי של AliExpress שצירפת
         const headers = parseCsvLine(lines[0], ',').map(h => h.trim());
         
         const productIdIdx      = headers.indexOf('ProductId');
         const imageUrlIdx       = headers.indexOf('Image Url');
+        const videoUrlIdx       = headers.indexOf('Video Url'); // <-- חוזר כדי לקחת וידאו
         const productDescIdx    = headers.indexOf('Product Desc');
         const originPriceIdx    = headers.indexOf('Origin Price');
         const discountPriceIdx  = headers.indexOf('Discount Price');
@@ -507,9 +550,9 @@
           const cols = parseCsvLine(line, ',');
 
           const rawTitle = cols[productDescIdx];
-          // שים לב! הקישור חשוב נמצא ב-Promotion Url, לא ב-Video Url
           const url = cols[promotionUrlIdx]; 
           const image = cols[imageUrlIdx];
+          const videoUrl = cols[videoUrlIdx]; // לוקחים את קישור הווידאו
           const id = cols[productIdIdx];
           const originPrice = cols[originPriceIdx] ? parseFloat(cols[originPriceIdx]) : null;
           const discountPrice = cols[discountPriceIdx] ? parseFloat(cols[discountPriceIdx]) : null;
@@ -518,7 +561,8 @@
             rawProducts.push({ 
               rawTitle, 
               url, 
-              image, 
+              image,
+              videoUrl, // שומרים את זה
               id,
               originPrice,
               discountPrice,
@@ -574,7 +618,6 @@
       });
     }
 
-    // פונקציה לקריאת CSV עם פסיקים ומרכאות
     function parseCsvLine(line, delimiter) {
       const values = [];
       let currentValue = '';
