@@ -84,6 +84,33 @@
             color: var(--secondary-text);
         }
 
+        /* מנגנון טעינה (Loader) */
+        .loading-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 60px 20px;
+            text-align: center;
+        }
+
+        .spinner {
+            width: 48px;
+            height: 48px;
+            border: 5px solid #FFF;
+            border-bottom-color: var(--primary-color);
+            border-radius: 50%;
+            display: inline-block;
+            box-sizing: border-box;
+            animation: rotation 1s linear infinite;
+            margin-bottom: 15px;
+        }
+
+        @keyframes rotation {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
         .grid {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
@@ -231,36 +258,46 @@
         <input type="text" id="search" placeholder="חפש מוצר..." oninput="filterProducts()">
     </div>
 
-    <div id="stats-bar" class="stats-bar">טוען מוצרים...</div>
-    <div id="product-grid" class="grid"></div>
+    <div id="stats-bar" class="stats-bar"></div>
+
+    <!-- אלמנט טעינה שמוצג בזמן התרגום -->
+    <div id="loader" class="loading-container">
+        <span class="spinner"></span>
+        <h3 id="loader-status">טוען ומתרגם את הדילים לעברית...</h3>
+    </div>
+
+    <div id="product-grid" class="grid" style="display: none;"></div>
 </div>
 
 <div id="toast" class="toast">הקישור הועתק בהצלחה!</div>
 
 <script>
-    // שם הקובץ ב-GitHub (ודא שהקובץ מועלה בשם הזה בדיוק)
     const CSV_FILE_PATH = 'products.csv';
     let allProducts = [];
 
-    // טעינת הקובץ אוטומטית בעת פתיחת הדף
     window.addEventListener('DOMContentLoaded', () => {
         Papa.parse(CSV_FILE_PATH, {
             download: true,
             header: true,
             skipEmptyLines: true,
-            complete: function(results) {
+            complete: async function(results) {
                 allProducts = results.data;
-                document.getElementById('stats-bar').innerText = `נטענו ${allProducts.length} מוצרים. מתחיל תרגום אוטומטי...`;
                 
-                // טעינת תרגומים קודמים מהזיכרון של המכשיר
+                // טעינת תרגומים קודמים מהזיכרון המקומי
                 loadCachedTranslations();
-                renderProducts(allProducts);
                 
-                // תרגום אוטומטי ברקע
-                translateAllProducts();
+                // תרגום מוצרים שלא תורגמו עדיין
+                await translateAllProducts();
+
+                // הסתרת ה-Loader והצגת הגריד המלא
+                document.getElementById('loader').style.display = 'none';
+                document.getElementById('product-grid').style.display = 'grid';
+                document.getElementById('stats-bar').innerText = `מוצגים ${allProducts.slice(0, 100).length} מוצרים מתורגמים`;
+                
+                renderProducts(allProducts);
             },
             error: function(err) {
-                document.getElementById('stats-bar').innerText = 'שגיאה בטעינת הקובץ products.csv מ-GitHub';
+                document.getElementById('loader-status').innerText = 'שגיאה בטעינת הקובץ products.csv מ-GitHub';
                 console.error(err);
             }
         });
@@ -330,7 +367,6 @@
         });
     }
 
-    // שמישת זיכרון מקומי לשמירת תרגומים (כדי שלא נתרגם שוב ושוב בכל רענון)
     function loadCachedTranslations() {
         const cache = localStorage.getItem('product_translations');
         if (cache) {
@@ -355,6 +391,7 @@
             
             if (originalTitle && !item.translated_title) {
                 try {
+                    document.getElementById('loader-status').innerText = `מתרגם מוצר ${i + 1} מתוך ${itemsToTranslate.length}...`;
                     const shortTitle = originalTitle.split(' ').slice(0, 12).join(' ');
                     const res = await fetch(`https://api.mymemory.translated.net/get?q=${encodeURIComponent(shortTitle)}&langpair=en|he`);
                     const data = await res.json();
@@ -372,10 +409,6 @@
 
         if (updated) {
             localStorage.setItem('product_translations', JSON.stringify(cache));
-            document.getElementById('stats-bar').innerText = `נטענו ${allProducts.length} מוצרים מתורגמים!`;
-            renderProducts(allProducts);
-        } else {
-            document.getElementById('stats-bar').innerText = `נטענו ${allProducts.length} מוצרים.`;
         }
     }
 
