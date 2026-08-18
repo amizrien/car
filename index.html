@@ -140,7 +140,6 @@
       color: #e74c3c;
     }
 
-    /* כפתור קנייה ראשי מעוצב */
     .buy-btn {
       display: flex;
       align-items: center;
@@ -164,7 +163,6 @@
       box-shadow: 0 4px 10px rgba(255, 78, 80, 0.3);
     }
 
-    /* כפתורי פעולות משניים */
     .action-buttons {
       display: flex;
       gap: 8px;
@@ -212,6 +210,15 @@
         includedLanguages: 'he,en,ar,ru',
         autoDisplay: false
       }, 'google_translate_element');
+
+      // הפעלת תרגום אוטומטי לעברית
+      setTimeout(() => {
+        const select = document.querySelector('.goog-te-combo');
+        if (select) {
+          select.value = 'he';
+          select.dispatchEvent(new Event('change'));
+        }
+      }, 800);
     }
   </script>
   <script type="text/javascript" src="//translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"></script>
@@ -238,7 +245,7 @@
 
   <script>
     const csvUrl = 'products.csv';
-    const usdToIlsRate = 3.70; // שער המרה דולר לשקל
+    const usdToIlsRate = 3.70;
     let allProducts = [];
 
     async function loadProducts() {
@@ -297,7 +304,6 @@
         const card = document.createElement('div');
         card.className = 'product-card';
 
-        // המרה לשקלים
         const priceIls = item.price ? (parseFloat(item.price) * usdToIlsRate).toFixed(2) : null;
         const oldPriceIls = item.oldPrice ? (parseFloat(item.oldPrice) * usdToIlsRate).toFixed(2) : null;
 
