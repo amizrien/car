@@ -50,30 +50,13 @@
       background: #fff;
     }
 
-    .translate-box {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      background: #fff;
-      padding: 6px 12px;
-      border: 1px solid #ccc;
-      border-radius: 6px;
-      font-size: 14px;
-    }
-
-    /* הסתרת הלוגואים והתוויות של גוגל */
-    .goog-logo-link, .goog-te-gadget span {
+    /* הסתרת אלמנט התרגום והאייקונים של גוגל לחלוטין */
+    #google_translate_element, .goog-te-banner-frame, .goog-logo-link, .goog-te-gadget {
       display: none !important;
     }
-    .goog-te-gadget {
-      color: transparent !important;
-      font-size: 0 !important;
-    }
-    .goog-te-combo {
-      padding: 4px;
-      border-radius: 4px;
-      border: 1px solid #ddd;
-      font-family: inherit;
+
+    body {
+      top: 0 !important; /* מונע מגוגל לדחוף את העמוד למטה */
     }
 
     .products-grid {
@@ -204,34 +187,21 @@
     }
   </style>
 
-  <!-- מנגנון תרגום עם זיהוי אסינכרוני מבוסס MutationObserver -->
   <script type="text/javascript">
     function googleTranslateElementInit() {
       new google.translate.TranslateElement({
         pageLanguage: 'en',
-        includedLanguages: 'he,en,ar,ru',
+        includedLanguages: 'he',
         autoDisplay: false
       }, 'google_translate_element');
-
-      // האזנה לשינויים ב-DOM עד שאלמנט הבחירה של גוגל קיים ומוכן
-      const observer = new MutationObserver((mutations, obs) => {
-        const select = document.querySelector('.goog-te-combo');
-        if (select && select.options.length > 1) {
-          select.value = 'he';
-          select.dispatchEvent(new Event('change'));
-          obs.disconnect(); // עצירת המעקב ברגע שהופעל התרגום
-        }
-      });
-
-      observer.observe(document.body, {
-        childList: true,
-        subtree: true
-      });
     }
   </script>
   <script type="text/javascript" src="//translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"></script>
 </head>
 <body>
+
+  <!-- אלמנט מוסתר של גוגל תרגום -->
+  <div id="google_translate_element"></div>
 
   <div class="main-header">
     <h1>קטלוג מוצרים מומלצים</h1>
@@ -240,10 +210,6 @@
   <div class="top-bar">
     <div class="search-box">
       <input type="text" id="searchInput" placeholder="חפש מוצר..." onkeyup="filterProducts()">
-    </div>
-    <div class="translate-box">
-      <span>תרגום שפה:</span>
-      <div id="google_translate_element"></div>
     </div>
   </div>
 
@@ -293,10 +259,24 @@
 
         renderProducts(allProducts);
 
+        // הפעלת התרגום רק *אחרי* שהמוצרים נטענו ל-DOM
+        triggerAutoTranslate();
+
       } catch (err) {
         console.error('שגיאה בטעינת הקובץ:', err);
         document.getElementById('products-container').innerHTML = '<p>אירעה שגיאה בטעינת המוצרים.</p>';
       }
+    }
+
+    function triggerAutoTranslate() {
+      const interval = setInterval(() => {
+        const select = document.querySelector('.goog-te-combo');
+        if (select) {
+          select.value = 'he';
+          select.dispatchEvent(new Event('change'));
+          clearInterval(interval); // הפסקת הלולאה ברגע שהתרגום הופעל
+        }
+      }, 300);
     }
 
     function renderProducts(products) {
