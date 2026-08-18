@@ -407,17 +407,24 @@
       card.className = 'product-card';
       card.dataset.productId = item.id;
 
-      // מחירים
+      // =============================================
+      //  לוגיקת מחירים - מתוקנת ומדויקת לקובץ שלך
+      // =============================================
       let priceHTML = '';
-      if (item.discountPrice && item.originPrice && item.discountPrice !== item.originPrice) {
+      // אם קיים מחיר מוזל וגם מחיר מקורי (והמחיר המוזל נמוך יותר)
+      if (item.discountPrice && item.originPrice && parseFloat(item.discountPrice) < parseFloat(item.originPrice)) {
         priceHTML = `
           <span class="old-price">₪${item.originPrice}</span> 
           <span class="current-price">₪${item.discountPrice}</span>
         `;
-      } else if (item.originPrice) {
+      } 
+      // אם יש רק מחיר מקורי (או מחיר מוזל שלא שונה)
+      else if (item.originPrice) {
         priceHTML = `<span class="current-price">₪${item.originPrice}</span>`;
-      } else {
-        priceHTML = `<span style="font-size:16px;color:#555;">צפה במוצר</span>`;
+      }
+      // אם אין בכלל מחיר - לא מציגים כלום (לא "צפה במוצר")
+      else {
+        priceHTML = '';
       }
 
       // קישור לווידאו (אם קיים)
@@ -535,7 +542,7 @@
         
         const productIdIdx      = headers.indexOf('ProductId');
         const imageUrlIdx       = headers.indexOf('Image Url');
-        const videoUrlIdx       = headers.indexOf('Video Url'); // <-- חוזר כדי לקחת וידאו
+        const videoUrlIdx       = headers.indexOf('Video Url');
         const productDescIdx    = headers.indexOf('Product Desc');
         const originPriceIdx    = headers.indexOf('Origin Price');
         const discountPriceIdx  = headers.indexOf('Discount Price');
@@ -552,8 +559,10 @@
           const rawTitle = cols[productDescIdx];
           const url = cols[promotionUrlIdx]; 
           const image = cols[imageUrlIdx];
-          const videoUrl = cols[videoUrlIdx]; // לוקחים את קישור הווידאו
+          const videoUrl = cols[videoUrlIdx];
           const id = cols[productIdIdx];
+          
+          // המרה למספרים
           const originPrice = cols[originPriceIdx] ? parseFloat(cols[originPriceIdx]) : null;
           const discountPrice = cols[discountPriceIdx] ? parseFloat(cols[discountPriceIdx]) : null;
 
@@ -562,7 +571,7 @@
               rawTitle, 
               url, 
               image,
-              videoUrl, // שומרים את זה
+              videoUrl,
               id,
               originPrice,
               discountPrice,
