@@ -138,7 +138,7 @@
       color: #e74c3c;
     }
 
-    /* כפתורים מעוצבים מחדש */
+    /* כפתורים מעוצבים */
     .btn-row {
       display: flex;
       gap: 8px;
@@ -358,7 +358,6 @@
     // פונקציות שיתוף והעתקה חכמות
     // ======================================
 
-    // העתקה: שם + קישור
     function copyToClipboard(title, url) {
       const textToCopy = `${title}\n${url}`;
       if (navigator.clipboard && navigator.clipboard.writeText) {
@@ -392,7 +391,6 @@
       }
     }
 
-    // שיתוף: שם + קישור למוצר (לא וידאו)
     function shareToWhatsApp(title, url) {
       const message = `${title}\n${url}`;
       const encodedMessage = encodeURIComponent(message);
@@ -407,27 +405,22 @@
       card.className = 'product-card';
       card.dataset.productId = item.id;
 
-      // =============================================
-      //  לוגיקת מחירים - מתוקנת ומדויקת לקובץ שלך
-      // =============================================
+      // =========================================================
+      //  לוגיקת מחירים - מעודכנת (לוקחת בדיוק מה שיש בקובץ עם ILS)
+      // =========================================================
       let priceHTML = '';
-      // אם קיים מחיר מוזל וגם מחיר מקורי (והמחיר המוזל נמוך יותר)
-      if (item.discountPrice && item.originPrice && parseFloat(item.discountPrice) < parseFloat(item.originPrice)) {
+      if (item.discountPrice && item.originPrice && item.discountPrice !== item.originPrice) {
         priceHTML = `
-          <span class="old-price">₪${item.originPrice}</span> 
-          <span class="current-price">₪${item.discountPrice}</span>
+          <span class="old-price">${item.originPrice}</span> 
+          <span class="current-price">${item.discountPrice}</span>
         `;
-      } 
-      // אם יש רק מחיר מקורי (או מחיר מוזל שלא שונה)
-      else if (item.originPrice) {
-        priceHTML = `<span class="current-price">₪${item.originPrice}</span>`;
-      }
-      // אם אין בכלל מחיר - לא מציגים כלום (לא "צפה במוצר")
-      else {
-        priceHTML = '';
+      } else if (item.originPrice) {
+        priceHTML = `<span class="current-price">${item.originPrice}</span>`;
+      } else {
+        priceHTML = ''; // אם אין מחיר, לא יופיע כלום
       }
 
-      // קישור לווידאו (אם קיים)
+      // קישור לווידאו
       let videoBtnHTML = '';
       if (item.videoUrl) {
         videoBtnHTML = `
@@ -436,13 +429,12 @@
           </a>
         `;
       } else {
-        videoBtnHTML = `<div style="flex:1;"></div>`; // מקום ריק לשמירה על יישור
+        videoBtnHTML = `<div style="flex:1;"></div>`;
       }
 
       // הכנה להעברה ב-JS
       const escapedUrl = item.url.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
       const escapedTitle = item.title.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
-      const escapedVideoUrl = item.videoUrl ? item.videoUrl.replace(/\\/g, '\\\\').replace(/'/g, "\\'") : '';
 
       card.innerHTML = `
         <a href="${item.url}" target="_blank" rel="nofollow" style="display:block; text-decoration:none;">
@@ -490,7 +482,7 @@
       titleElement.textContent = translatedTitle;
       titleElement.title = translatedTitle;
       
-      // עדכון הפונקציות בשביל הכפתורים עם השם המתורגם
+      // עדכון הכפתורים עם השם המתורגם
       const escapedTitle = translatedTitle.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
       const escapedUrl = rawItem.url.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
       
@@ -562,9 +554,9 @@
           const videoUrl = cols[videoUrlIdx];
           const id = cols[productIdIdx];
           
-          // המרה למספרים
-          const originPrice = cols[originPriceIdx] ? parseFloat(cols[originPriceIdx]) : null;
-          const discountPrice = cols[discountPriceIdx] ? parseFloat(cols[discountPriceIdx]) : null;
+          // לוקחים בדיוק את הטקסט כמו שהוא (כולל ILS)
+          const originPrice = cols[originPriceIdx] || null;
+          const discountPrice = cols[discountPriceIdx] || null;
 
           if (rawTitle && url && image) {
             rawProducts.push({ 
