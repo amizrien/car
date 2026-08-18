@@ -7,12 +7,19 @@
   
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
+  <script>
+    // הגדרת עוגיית התרגום של גוגל מ-אנגלית ל-עברית לפני טעינת הרכיב
+    document.cookie = "googtrans=/en/he; path=/";
+    document.cookie = "googtrans=/en/he; domain=" + window.location.hostname + "; path=/";
+  </script>
+
   <style>
     body {
       font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
       background-color: #f4f6f8;
       margin: 0;
       padding: 20px;
+      top: 0 !important; /* מונע מגוגל לדחוף את העמוד למטה */
     }
 
     .main-header {
@@ -50,13 +57,16 @@
       background: #fff;
     }
 
-    /* הסתרת אלמנט התרגום והאייקונים של גוגל לחלוטין */
-    #google_translate_element, .goog-te-banner-frame, .goog-logo-link, .goog-te-gadget {
-      display: none !important;
+    /* הסתרת הסרגל של גוגל אל מחוץ למסך במקום display:none */
+    #google_translate_element {
+      position: absolute;
+      left: -9999px;
+      top: -9999px;
+      visibility: hidden;
     }
 
-    body {
-      top: 0 !important; /* מונע מגוגל לדחוף את העמוד למטה */
+    .goog-te-banner-frame, .goog-te-balloon-frame, iframe.goog-te-menu-frame {
+      display: none !important;
     }
 
     .products-grid {
@@ -191,7 +201,7 @@
     function googleTranslateElementInit() {
       new google.translate.TranslateElement({
         pageLanguage: 'en',
-        includedLanguages: 'he',
+        layout: google.translate.TranslateElement.InlineLayout.SIMPLE,
         autoDisplay: false
       }, 'google_translate_element');
     }
@@ -200,7 +210,6 @@
 </head>
 <body>
 
-  <!-- אלמנט מוסתר של גוגל תרגום -->
   <div id="google_translate_element"></div>
 
   <div class="main-header">
@@ -259,24 +268,10 @@
 
         renderProducts(allProducts);
 
-        // הפעלת התרגום רק *אחרי* שהמוצרים נטענו ל-DOM
-        triggerAutoTranslate();
-
       } catch (err) {
         console.error('שגיאה בטעינת הקובץ:', err);
         document.getElementById('products-container').innerHTML = '<p>אירעה שגיאה בטעינת המוצרים.</p>';
       }
-    }
-
-    function triggerAutoTranslate() {
-      const interval = setInterval(() => {
-        const select = document.querySelector('.goog-te-combo');
-        if (select) {
-          select.value = 'he';
-          select.dispatchEvent(new Event('change'));
-          clearInterval(interval); // הפסקת הלולאה ברגע שהתרגום הופעל
-        }
-      }, 300);
     }
 
     function renderProducts(products) {
