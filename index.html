@@ -406,16 +406,16 @@
       card.dataset.productId = item.id;
 
       // =========================================================
-      //  לוגיקת מחירים - מעודכנת (לוקחת בדיוק מה שיש בקובץ עם ILS)
+      //  לוגיקת מחירים - מחליפה אוטומטית ILS ב- ₪
       // =========================================================
       let priceHTML = '';
       if (item.discountPrice && item.originPrice && item.discountPrice !== item.originPrice) {
         priceHTML = `
-          <span class="old-price">${item.originPrice}</span> 
-          <span class="current-price">${item.discountPrice}</span>
+          <span class="old-price">${item.originPrice.replace('ILS', '₪')}</span> 
+          <span class="current-price">${item.discountPrice.replace('ILS', '₪')}</span>
         `;
       } else if (item.originPrice) {
-        priceHTML = `<span class="current-price">${item.originPrice}</span>`;
+        priceHTML = `<span class="current-price">${item.originPrice.replace('ILS', '₪')}</span>`;
       } else {
         priceHTML = ''; // אם אין מחיר, לא יופיע כלום
       }
@@ -554,7 +554,7 @@
           const videoUrl = cols[videoUrlIdx];
           const id = cols[productIdIdx];
           
-          // לוקחים בדיוק את הטקסט כמו שהוא (כולל ILS)
+          // לוקחים בדיוק את הטקסט כמו שהוא (כולל ILS, נחליף בהמשך)
           const originPrice = cols[originPriceIdx] || null;
           const discountPrice = cols[discountPriceIdx] || null;
 
