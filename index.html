@@ -97,7 +97,6 @@
   </div>
 
   <script>
-    // הנתיב לקובץ ה-CSV ב-GitHub (חובה לקשר לגרסת Raw)
     const csvUrl = 'products.csv';
 
     async function loadProducts() {
@@ -105,44 +104,52 @@
         const response = await fetch(csvUrl);
         const text = await response.text();
 
-        // פירוק שורות הקובץ
-        const lines = text.trim().split('\n');
+        const lines = text.trim().split(/\r?\n/);
         if (lines.length <= 1) return;
 
-        const container = document.getElementById('products-container');
-        container.innerHTML = ''; // ניקוי הודעת הטעינה
+        // ניתוח שורת הכותרת למציאת האינדקס המדויק של כל שדה
+        const headers = parseCsvLine(lines[0], ';').map(h => h.trim().toLowerCase());
+        
+        const titleIdx = headers.indexOf('title');
+        const urlIdx = headers.indexOf('url');
+        const imageIdx = headers.indexOf('image');
+        const priceIdx = headers.indexOf('price');
+        const oldPriceIdx = headers.indexOf('oldprice');
+        const currencyIdx = headers.indexOf('currencyid');
 
-        // דילוג על שורת הכותרת (i = 1)
+        const container = document.getElementById('products-container');
+        container.innerHTML = '';
+
         for (let i = 1; i < lines.length; i++) {
           const line = lines[i].trim();
           if (!line) continue;
 
-          // פירוק לפי נקודה-פסיק (התחשבות בערכים עם מירכאות)
           const cols = parseCsvLine(line, ';');
 
-          const title = cols[1];
-          const url = cols[2];
-          const currency = cols[4] || '$';
-          const image = cols[6];
-          const oldPrice = cols[7];
-          const price = cols[8];
+          const title = cols[titleIdx];
+          const url = cols[urlIdx];
+          const image = cols[imageIdx];
+          const price = cols[priceIdx];
+          const oldPrice = oldPriceIdx !== -1 ? cols[oldPriceIdx] : '';
+          const currency = currencyIdx !== -1 ? cols[currencyIdx] : '$';
 
-          if (!title || !url) continue;
+          if (!title || !url || !image) continue;
 
-          // יצירת הכרטיסייה
           const card = document.createElement('div');
           card.className = 'product-card';
 
-          const currencySymbol = currency === 'USD' ? '$' : currency;
+          const currencySymbol = (currency === 'USD' || !currency) ? '$' : currency;
 
           let priceHTML = '';
           if (oldPrice && parseFloat(oldPrice) > parseFloat(price)) {
             priceHTML = `<span class="old-price">${currencySymbol}${oldPrice}</span> `;
           }
-          priceHTML += `<span class="current-price">${currencySymbol}${price}</span>`;
+          if (price) {
+            priceHTML += `<span class="current-price">${currencySymbol}${price}</span>`;
+          }
 
           card.innerHTML = `
-            <img src="${image}" alt="${title}" loading="lazy">
+            <img src="${image}" alt="${title}" loading="lazy" referrerpolicy="no-referrer">
             <div class="product-title" title="${title}">${title}</div>
             <div class="price-container">${priceHTML}</div>
             <a href="${url}" target="_blank" rel="nofollow" class="buy-btn">לצפייה במוצר</a>
@@ -151,12 +158,11 @@
           container.appendChild(card);
         }
       } catch (err) {
-        console.error('שגיאה שטעינת הקובץ:', err);
+        console.error('שגיאה בטעינת הקובץ:', err);
         document.getElementById('products-container').innerHTML = '<p>אירעה שגיאה בטעינת המוצרים.</p>';
       }
     }
 
-    // פונקציית עזר לניתוח שורת CSV לפי מפריד מותאם אישית
     function parseCsvLine(line, delimiter) {
       const values = [];
       let currentValue = '';
@@ -178,7 +184,6 @@
       return values;
     }
 
-    // הפעלת הטעינה בזמן עליית הדף
     document.addEventListener('DOMContentLoaded', loadProducts);
   </script>
 </body>
