@@ -169,6 +169,7 @@
       text-decoration: none;
       color: #475569;
       transition: all 0.2s ease;
+      border: 1px solid #e2e8f0;
     }
 
     .action-btn:hover {
@@ -338,39 +339,64 @@
       }, 2500);
     }
 
-    // פונקציה שמנקה את הקישור מפרמטרים מיותרים
-    function cleanTargetUrl(rawUrl) {
-      if (!rawUrl) return '';
+    // פונקציה שמנקה קישור - מוצאת את קישור ה-AliExpress הנקי
+    function cleanUrl(url) {
+      if (!url) return '';
       
-      if (rawUrl.includes('rzeki.com')) {
+      // ניסיון ראשון: אם זה קישור של rzeki.com
+      if (url.includes('rzeki.com')) {
         try {
-          const urlObj = new URL(rawUrl);
+          // מנסים לחלץ את פרמטר ulp
+          const urlObj = new URL(url);
           const ulpParam = urlObj.searchParams.get('ulp');
           if (ulpParam) {
-            const decodedUrl = decodeURIComponent(ulpParam);
-            if (decodedUrl.startsWith('http')) {
-              return decodedUrl;
+            // מפענחים את הקישור המקורי
+            let decodedUrl = decodeURIComponent(ulpParam);
+            
+            // מחפשים קישור של AliExpress בתוך המחרוזת המפוענחת
+            const aliexpressMatch = decodedUrl.match(/https?:\/\/[^\/]*aliexpress[^\/]*\/[^\s&?]+/i);
+            if (aliexpressMatch) {
+              // אם מצאנו קישור AliExpress - מחזירים אותו
+              return aliexpressMatch[0];
             }
+            
+            // אם לא מצאנו קישור AliExpress ספציפי, ננסה לחלץ קישור click
+            const clickMatch = decodedUrl.match(/https?:\/\/s\.click\.aliexpress\.com\/[^\s&?]+/i);
+            if (clickMatch) {
+              return clickMatch[0];
+            }
+            
+            // אם עדיין לא מצאנו, מחזירים את הקישור המפוענח
+            return decodedUrl;
           }
         } catch (e) {
           console.log('לא ניתן לנתח את הקישור:', e);
         }
       }
-      return rawUrl;
+      
+      // אם כבר יש קישור של AliExpress - ננסה לנקות אותו
+      if (url.includes('aliexpress.com')) {
+        // מנסים לחלץ רק את הקישור הבסיסי
+        const cleanMatch = url.match(/https?:\/\/[^\/]*aliexpress[^\/]*\/[^\s&?]+/i);
+        if (cleanMatch) {
+          return cleanMatch[0];
+        }
+      }
+      
+      return url;
     }
 
-    // העתקה ללוח העריכה
     function copyToClipboard(url) {
-      const cleaned = cleanTargetUrl(url);
+      const cleanUrl = cleanUrl(url);
       
       if (navigator.clipboard && navigator.clipboard.writeText) {
-        navigator.clipboard.writeText(cleaned).then(() => {
+        navigator.clipboard.writeText(cleanUrl).then(() => {
           showToast('✅ הקישור הועתק בהצלחה!');
         }).catch(() => {
-          fallbackCopy(cleaned);
+          fallbackCopy(cleanUrl);
         });
       } else {
-        fallbackCopy(cleaned);
+        fallbackCopy(cleanUrl);
       }
     }
 
@@ -388,16 +414,18 @@
         showToast('✅ הקישור הועתק בהצלחה!');
       } catch (err) {
         showToast('❌ לא הצלחנו להעתיק את הקישור', false);
+        console.error('שגיאת העתקה:', err);
       } finally {
         document.body.removeChild(textarea);
       }
     }
 
-    // שיתוף ל-WhatsApp
     function shareToWhatsApp(title, url) {
-      const cleaned = cleanTargetUrl(url);
-      const message = `${title}\n${cleaned}`;
-      const waUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(message)}`;
+      const cleanUrl = cleanUrl(url);
+      const message = `${title}\n${cleanUrl}`;
+      const encodedMessage = encodeURIComponent(message);
+      const waUrl = `https://api.whatsapp.com/send?text=${encodedMessage}`;
+      
       window.open(waUrl, '_blank', 'noopener,noreferrer');
     }
 
@@ -417,6 +445,9 @@
         priceHTML += `<span class="current-price">₪${priceIls}</span>`;
       }
 
+      const escapedUrl = item.url.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+      const escapedTitle = item.title.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+
       card.innerHTML = `
         <img src="${item.image}" alt="${item.title}" loading="lazy" referrerpolicy="no-referrer">
         <div class="product-title" title="${item.title}">${item.title}</div>
@@ -426,24 +457,14 @@
         </a>
         
         <div class="action-buttons">
-          <button class="action-btn btn-copy" title="העתק קישור נקי">
+          <button class="action-btn" onclick="copyToClipboard('${escapedUrl}')" title="העתק קישור נקי">
             <i class="far fa-copy"></i> העתק
           </button>
-          <button class="action-btn btn-wa" title="שתף ב-WhatsApp">
+          <button class="action-btn btn-wa" onclick="shareToWhatsApp('${escapedTitle}', '${escapedUrl}')" title="שתף ב-WhatsApp">
             <i class="fab fa-whatsapp"></i> שתף
           </button>
         </div>
       `;
-
-      // שיוך אירועים ישירות לאלמנטים - מונע בעיות גרשיים ב-HTML
-      const copyBtn = card.querySelector('.btn-copy');
-      copyBtn.addEventListener('click', () => copyToClipboard(item.url));
-
-      const waBtn = card.querySelector('.btn-wa');
-      waBtn.addEventListener('click', () => {
-        const currentTitle = card.querySelector('.product-title').textContent;
-        shareToWhatsApp(currentTitle, item.url);
-      });
 
       return card;
     }
@@ -466,6 +487,11 @@
       const titleElement = card.querySelector('.product-title');
       titleElement.textContent = translatedTitle;
       titleElement.title = translatedTitle;
+      
+      const shareBtn = card.querySelector('.btn-wa');
+      const escapedTitle = translatedTitle.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+      const escapedUrl = rawItem.url.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+      shareBtn.setAttribute('onclick', `shareToWhatsApp('${escapedTitle}', '${escapedUrl}')`);
 
       const productIndex = allProducts.findIndex(p => p.id === index);
       if (productIndex !== -1) {
