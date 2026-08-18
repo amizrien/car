@@ -339,64 +339,16 @@
       }, 2500);
     }
 
-    // פונקציה שמנקה קישור - מוצאת את קישור ה-AliExpress הנקי
-    function cleanUrl(url) {
-      if (!url) return '';
-      
-      // ניסיון ראשון: אם זה קישור של rzeki.com
-      if (url.includes('rzeki.com')) {
-        try {
-          // מנסים לחלץ את פרמטר ulp
-          const urlObj = new URL(url);
-          const ulpParam = urlObj.searchParams.get('ulp');
-          if (ulpParam) {
-            // מפענחים את הקישור המקורי
-            let decodedUrl = decodeURIComponent(ulpParam);
-            
-            // מחפשים קישור של AliExpress בתוך המחרוזת המפוענחת
-            const aliexpressMatch = decodedUrl.match(/https?:\/\/[^\/]*aliexpress[^\/]*\/[^\s&?]+/i);
-            if (aliexpressMatch) {
-              // אם מצאנו קישור AliExpress - מחזירים אותו
-              return aliexpressMatch[0];
-            }
-            
-            // אם לא מצאנו קישור AliExpress ספציפי, ננסה לחלץ קישור click
-            const clickMatch = decodedUrl.match(/https?:\/\/s\.click\.aliexpress\.com\/[^\s&?]+/i);
-            if (clickMatch) {
-              return clickMatch[0];
-            }
-            
-            // אם עדיין לא מצאנו, מחזירים את הקישור המפוענח
-            return decodedUrl;
-          }
-        } catch (e) {
-          console.log('לא ניתן לנתח את הקישור:', e);
-        }
-      }
-      
-      // אם כבר יש קישור של AliExpress - ננסה לנקות אותו
-      if (url.includes('aliexpress.com')) {
-        // מנסים לחלץ רק את הקישור הבסיסי
-        const cleanMatch = url.match(/https?:\/\/[^\/]*aliexpress[^\/]*\/[^\s&?]+/i);
-        if (cleanMatch) {
-          return cleanMatch[0];
-        }
-      }
-      
-      return url;
-    }
-
+    // --- פונקציית העתקה (מעתיקה את הקישור בדיוק כמו שהוא, בלי לנקות) ---
     function copyToClipboard(url) {
-      const cleanUrl = cleanUrl(url);
-      
       if (navigator.clipboard && navigator.clipboard.writeText) {
-        navigator.clipboard.writeText(cleanUrl).then(() => {
+        navigator.clipboard.writeText(url).then(() => {
           showToast('✅ הקישור הועתק בהצלחה!');
         }).catch(() => {
-          fallbackCopy(cleanUrl);
+          fallbackCopy(url);
         });
       } else {
-        fallbackCopy(cleanUrl);
+        fallbackCopy(url);
       }
     }
 
@@ -420,9 +372,9 @@
       }
     }
 
+    // --- פונקציית שיתוף (שולחת את הטקסט והקישור בדיוק כמו שהם) ---
     function shareToWhatsApp(title, url) {
-      const cleanUrl = cleanUrl(url);
-      const message = `${title}\n${cleanUrl}`;
+      const message = `${title}\n${url}`;
       const encodedMessage = encodeURIComponent(message);
       const waUrl = `https://api.whatsapp.com/send?text=${encodedMessage}`;
       
@@ -445,6 +397,7 @@
         priceHTML += `<span class="current-price">₪${priceIls}</span>`;
       }
 
+      // הכנה של הקישור והכותרת להעברה בתוך ה-JS (בריחה ממירכאות כדי לא לשבור את הקוד)
       const escapedUrl = item.url.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
       const escapedTitle = item.title.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
 
@@ -457,7 +410,7 @@
         </a>
         
         <div class="action-buttons">
-          <button class="action-btn" onclick="copyToClipboard('${escapedUrl}')" title="העתק קישור נקי">
+          <button class="action-btn" onclick="copyToClipboard('${escapedUrl}')" title="העתק קישור">
             <i class="far fa-copy"></i> העתק
           </button>
           <button class="action-btn btn-wa" onclick="shareToWhatsApp('${escapedTitle}', '${escapedUrl}')" title="שתף ב-WhatsApp">
