@@ -290,15 +290,22 @@
     });
 
     // פונקציית עזר למציאת ערך לפי מספר שמות עמודה אפשריים
-    function getFieldValue(item, possibleKeys) {
-        for (let key of possibleKeys) {
-            const foundKey = Object.keys(item).find(k => k.trim().toLowerCase() === key.toLowerCase());
-            if (foundKey && item[foundKey]) {
-                return item[foundKey];
-            }
+ function getFieldValue(item, possibleKeys) {
+    if (!item) return '';
+    
+    // עוברים על כל המפתחות הקיימים באובייקט המוצר
+    const itemKeys = Object.keys(item);
+    
+    for (let key of possibleKeys) {
+        // מחפשים מפתח שמתאים (התעלמות מרווחים בקצוות ומאותיות גדולות/קטנות)
+        const foundKey = itemKeys.find(k => k.trim().toLowerCase() === key.trim().toLowerCase());
+        
+        if (foundKey && item[foundKey] && item[foundKey].toString().trim() !== '') {
+            return item[foundKey].toString().trim();
         }
-        return '';
     }
+    return '';
+}
 
     function renderProducts(products) {
         const grid = document.getElementById('product-grid');
@@ -311,7 +318,7 @@
 
         products.slice(0, 100).forEach(item => {
             // התאמה מדויקת לעמודה Product Desc מהאקסל שלך
-            const title = getFieldValue(item, ['Product Desc', 'Product Description', 'Product Title', 'title', 'Product Name', 'subject']) || 'מוצר ללא שם';
+            const title = getFieldValue(item, ['product desc', 'product description', 'product title', 'title', 'product name', 'subject']) || 'מוצר ללא שם';
             const image = getFieldValue(item, ['Image Url', 'Product Image URL', 'image_url', 'ImageUrl']);
             const price = getFieldValue(item, ['Discount Price', 'Discount', 'Target Sale Price', 'price', 'Sale Price']);
             const origPrice = getFieldValue(item, ['Origin Price', 'Original Price']);
