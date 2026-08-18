@@ -251,7 +251,6 @@
       transform: scale(1);
     }
 
-    /* Toast notification */
     .toast {
       position: fixed;
       bottom: 30px;
@@ -267,6 +266,8 @@
       transition: all 0.4s ease;
       z-index: 9999;
       pointer-events: none;
+      text-align: center;
+      max-width: 90%;
     }
 
     .toast.show {
@@ -303,7 +304,6 @@
     </div>
   </div>
 
-  <!-- Toast notification -->
   <div class="toast" id="toast"></div>
 
   <script>
@@ -313,7 +313,6 @@
     let totalProducts = 0;
     let translatedCount = 0;
 
-    // פונקציית תרגום פשוטה וישירה דרך ה-API החופשי של גוגל
     async function translateText(text) {
       if (!text) return text;
       try {
@@ -329,7 +328,6 @@
       return text;
     }
 
-    // פונקציה להצגת הודעה
     function showToast(message, isSuccess = true) {
       const toast = document.getElementById('toast');
       toast.textContent = message;
@@ -341,10 +339,35 @@
       }, 2500);
     }
 
-    // פונקציה להעתקת קישור
+    // פונקציה שמנקה קישור - מסירה את כל הפרמטרים המיותרים
+    function cleanUrl(url) {
+      if (!url) return '';
+      
+      // אם זה קישור של rzeki.com - ננסה לחלץ ממנו את הקישור המקורי
+      if (url.includes('rzeki.com')) {
+        try {
+          // ננסה למצוא את הקישור המקורי בתוך הפרמטרים
+          const urlObj = new URL(url);
+          const ulpParam = urlObj.searchParams.get('ulp');
+          if (ulpParam) {
+            // מפענחים את הקישור המקורי
+            const decodedUrl = decodeURIComponent(ulpParam);
+            // בודקים אם זה קישור תקין
+            if (decodedUrl.startsWith('http')) {
+              return decodedUrl;
+            }
+          }
+        } catch (e) {
+          console.log('לא ניתן לנתח את הקישור:', e);
+        }
+      }
+      
+      return url;
+    }
+
+    // פונקציה להעתקת קישור נקי
     function copyToClipboard(url) {
-      // ניקוי הקישור מתווים מיותרים
-      const cleanUrl = url.trim();
+      const cleanUrl = cleanUrl(url);
       
       if (navigator.clipboard && navigator.clipboard.writeText) {
         navigator.clipboard.writeText(cleanUrl).then(() => {
@@ -357,7 +380,6 @@
       }
     }
 
-    // שיטת גיבוי להעתקה
     function fallbackCopy(text) {
       const textarea = document.createElement('textarea');
       textarea.value = text;
@@ -378,20 +400,16 @@
       }
     }
 
-    // פונקציה לשיתוף ב-WhatsApp
+    // פונקציה לשיתוף ב-WhatsApp עם קישור נקי
     function shareToWhatsApp(title, url) {
-      // ניקוי הקישור
-      const cleanUrl = url.trim();
-      // קידוד ההודעה
+      const cleanUrl = cleanUrl(url);
       const message = `${title}\n${cleanUrl}`;
       const encodedMessage = encodeURIComponent(message);
       const waUrl = `https://api.whatsapp.com/send?text=${encodedMessage}`;
       
-      // פתיחה בחלון חדש
       window.open(waUrl, '_blank', 'noopener,noreferrer');
     }
 
-    // יצירת כרטיס מוצר
     function createProductCard(item) {
       const card = document.createElement('div');
       card.className = 'product-card';
@@ -408,7 +426,6 @@
         priceHTML += `<span class="current-price">₪${priceIls}</span>`;
       }
 
-      // שימוש בפונקציות גלובליות
       const escapedUrl = item.url.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
       const escapedTitle = item.title.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
 
@@ -421,7 +438,7 @@
         </a>
         
         <div class="action-buttons">
-          <button class="action-btn" onclick="copyToClipboard('${escapedUrl}')" title="העתק קישור">
+          <button class="action-btn" onclick="copyToClipboard('${escapedUrl}')" title="העתק קישור נקי">
             <i class="far fa-copy"></i> העתק
           </button>
           <button class="action-btn btn-wa" onclick="shareToWhatsApp('${escapedTitle}', '${escapedUrl}')" title="שתף ב-WhatsApp">
@@ -433,7 +450,6 @@
       return card;
     }
 
-    // הוספת מוצר שיתורגם (מוצג בהדרגה)
     async function addProductWithTranslation(rawItem, index) {
       const tempItem = {
         ...rawItem,
@@ -447,21 +463,17 @@
       const container = document.getElementById('products-container');
       container.appendChild(card);
 
-      // תרגום הכותרת
       const translatedTitle = await translateText(rawItem.rawTitle);
       
-      // עדכון הכותרת בכרטיס
       const titleElement = card.querySelector('.product-title');
       titleElement.textContent = translatedTitle;
       titleElement.title = translatedTitle;
       
-      // עדכון כפתור השיתוף עם הכותרת המתורגמת
       const shareBtn = card.querySelector('.btn-wa');
       const escapedTitle = translatedTitle.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
       const escapedUrl = rawItem.url.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
       shareBtn.setAttribute('onclick', `shareToWhatsApp('${escapedTitle}', '${escapedUrl}')`);
 
-      // עדכון המוצר במערך
       const productIndex = allProducts.findIndex(p => p.id === index);
       if (productIndex !== -1) {
         allProducts[productIndex].title = translatedTitle;
