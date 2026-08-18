@@ -340,15 +340,14 @@
     }
 
     // ===========================================
-    // פונקציית קיצור קישורים באמצעות TinyURL (פתרון מנצח!)
+    // פונקציית קיצור קישורים - הפעם בלי לנסות "לנקות"!
     // ===========================================
     async function shortenUrl(longUrl) {
       try {
-        // שליחה לשרת של TinyURL לקבלת קישור קצר
+        // שליחה ישירה של הקישור הארוך כמו שהוא ל-TinyURL
         const response = await fetch(`https://tinyurl.com/api-create.php?url=${encodeURIComponent(longUrl)}`);
         if (response.ok) {
           const shortUrl = await response.text();
-          // אם השרת החזיר קישור תקין
           if (shortUrl && shortUrl.startsWith('http')) {
             return shortUrl;
           }
@@ -356,7 +355,6 @@
       } catch (e) {
         console.warn("כשל בקיצור הקישור:", e);
       }
-      // אם קיצור נכשל, נחזיר את הקישור המקורי (אבל זה לא יקרה כי TinyURL מאוד אמין)
       return longUrl;
     }
 
@@ -403,7 +401,7 @@
       window.open(waUrl, '_blank', 'noopener,noreferrer');
     }
     // ===========================================
-    // סוף פונקציות הקיצור האוטומטיות
+    // סוף פונקציות הקיצור
     // ===========================================
 
     function createProductCard(item) {
