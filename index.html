@@ -2,8 +2,27 @@
 <html lang="he" dir="rtl">
 <head>
   <meta charset="UTF-8">
+  
+  <!-- META SEO -->
+  <meta name="description" content="קטלוג המוצרים המובילים והמשתלמים ביותר לרכב מאליאקספרס. אביזרי רכב, חומרי ניקוי, חיישני חניה, כלי עבודה, ועוד במחירים אטרקטיביים עם משלוח מהיר.">
+  <meta name="keywords" content="אביזרי רכב, אליאקספרס רכב, חומרי ניקוי לרכב, חיישן חניה, כלי עבודה לרכב, קטלוג מוצרי רכב, car accessories, aliexpress car, detailing">
+  <meta name="robots" content="index, follow">
+  <meta name="author" content="קטלוג מוצרי רכב">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>קטלוג מוצרים</title>
+
+  <!-- Open Graph (לשיתופים בוואטסאפ, פייסבוק וכו') - הכתובת תתעדכן אוטומטית לתמונה הראשונה -->
+  <meta property="og:title" content="קטלוג מוצרי רכב מומלצים - AliExpress">
+  <meta property="og:description" content="המבצעים החמים ביותר על אביזרי רכב, ניקוי ותחזוקה. כנסו לגלות את המוצרים שכל רכב צריך.">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://amizrien.github.io/car/">
+  <meta property="og:image" content="">
+
+  <!-- Twitter Card -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="קטלוג מוצרי רכב מומלצים">
+  <meta name="twitter:description" content="המבצעים החמים ביותר על אביזרי רכב וניקוי מ-AliExpress.">
+
+  <title>קטלוג מוצרי רכב מומלצים - AliExpress</title>
   
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
@@ -295,7 +314,7 @@
 <body>
 
   <div class="main-header">
-    <h1>קטלוג מוצרים מומלצים</h1>
+    <h1>קטלוג מוצרי רכב מומלצים</h1>
   </div>
 
   <div class="top-bar">
@@ -642,5 +661,46 @@
 
     document.addEventListener('DOMContentLoaded', loadProducts);
   </script>
+
+  <!-- ================================================ -->
+  <!-- סקריפט לעדכון אוטומטי של תמונת ה-OG Image -->
+  <!-- ================================================ -->
+  <script>
+    // פונקציה שמושכת את התמונה של המוצר הראשון ועדכנת את ה-OG Image
+    async function setDynamicOgImage() {
+      try {
+        // מחכים עד שיופיעו מוצרים בדף
+        const checkProducts = setInterval(() => {
+          const firstCard = document.querySelector('.product-card img');
+          
+          if (firstCard) {
+            clearInterval(checkProducts); // עצור את הבדיקה
+            
+            // מצא את ה-META של og:image
+            let ogMeta = document.querySelector('meta[property="og:image"]');
+            
+            // אם ה-META לא קיים - צור אותו
+            if (!ogMeta) {
+              ogMeta = document.createElement('meta');
+              ogMeta.setAttribute('property', 'og:image');
+              document.head.appendChild(ogMeta);
+            }
+
+            // עדכן את הכתובת
+            const imageUrl = firstCard.getAttribute('src');
+            ogMeta.setAttribute('content', imageUrl);
+            console.log('✅ תמונת OG עודכנה למוצר הראשון:', imageUrl);
+          }
+        }, 200); // בדוק כל 200 מילישניות
+        
+      } catch (err) {
+        console.error('שגיאה בעדכון תמונת OG:', err);
+      }
+    }
+
+    // הפעל את הפונקציה אחרי שהדף נטען
+    document.addEventListener('DOMContentLoaded', setDynamicOgImage);
+  </script>
+
 </body>
 </html>
