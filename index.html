@@ -67,12 +67,22 @@
       flex-direction: column;
       justify-content: space-between;
       box-shadow: 0 4px 12px rgba(0,0,0,0.03);
-      transition: all 0.2s ease-in-out;
+      transition: all 0.3s ease-in-out;
+      opacity: 0;
+      transform: translateY(20px);
+      animation: fadeInUp 0.4s ease forwards;
     }
 
     .product-card:hover {
       transform: translateY(-4px);
       box-shadow: 0 8px 20px rgba(0,0,0,0.08);
+    }
+
+    @keyframes fadeInUp {
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
     }
 
     .product-card img {
@@ -197,7 +207,7 @@
       text-align: center;
       font-size: 14px;
       color: #666;
-      padding: 8px;
+      padding: 10px 20px;
       background: #f0f4f8;
       border-radius: 6px;
       display: none;
@@ -245,6 +255,16 @@
       min-width: 80px;
       text-align: left;
     }
+
+    .product-card.translating {
+      opacity: 0.5;
+      transform: scale(0.98);
+    }
+
+    .product-card.translated {
+      opacity: 1;
+      transform: scale(1);
+    }
   </style>
 </head>
 <body>
@@ -261,7 +281,7 @@
 
   <div class="translation-progress" id="translationProgress">
     <span style="font-size:16px;">🌐</span>
-    <span style="font-size:14px;color:#555;">מתרגם מוצרים לעברית...</span>
+    <span style="font-size:14px;color:#555;" id="translationStatus">מתרגם מוצרים לעברית...</span>
     <div class="progress-bar">
       <div class="progress-bar-fill" id="progressFill"></div>
     </div>
@@ -271,7 +291,7 @@
   <div id="products-container" class="products-grid">
     <div class="loading-spinner">
       <i class="fas fa-spinner fa-pulse"></i>
-      טוען מוצרים ומתרגם לעברית...
+      טוען מוצרים...
     </div>
   </div>
 
@@ -279,7 +299,8 @@
     const csvUrl = 'products.csv';
     const usdToIlsRate = 3.70;
     let allProducts = [];
-    let isTranslating = false;
+    let totalProducts = 0;
+    let translatedCount = 0;
 
     // פונקציית תרגום פשוטה וישירה דרך ה-API החופשי של גוגל
     async function translateText(text) {
@@ -297,25 +318,108 @@
       return text; // אם התרגום נכשל, יוחזר הטקסט המקורי
     }
 
-    // תרגום מוצרים עם תצוגת התקדמות
-    async function translateProducts(products, onProgress) {
-      const translated = [];
-      const total = products.length;
-      
-      for (let i = 0; i < total; i++) {
-        const item = products[i];
-        const translatedTitle = await translateText(item.rawTitle);
-        translated.push({
-          ...item,
-          title: translatedTitle
-        });
-        
-        if (onProgress) {
-          onProgress(i + 1, total);
-        }
+    // יצירת כרטיס מוצר
+    function createProductCard(item) {
+      const card = document.createElement('div');
+      card.className = 'product-card';
+      card.dataset.productId = item.id;
+
+      const priceIls = item.price ? (parseFloat(item.price) * usdToIlsRate).toFixed(2) : null;
+      const oldPriceIls = item.oldPrice ? (parseFloat(item.oldPrice) * usdToIlsRate).toFixed(2) : null;
+
+      let priceHTML = '';
+      if (oldPriceIls && parseFloat(oldPriceIls) > parseFloat(priceIls)) {
+        priceHTML = `<span class="old-price">₪${oldPriceIls}</span> `;
       }
+      if (priceIls) {
+        priceHTML += `<span class="current-price">₪${priceIls}</span>`;
+      }
+
+      const waShareUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(item.title + ' - ' + item.url)}`;
+
+      card.innerHTML = `
+        <img src="${item.image}" alt="${item.title}" loading="lazy" referrerpolicy="no-referrer">
+        <div class="product-title" title="${item.title}">${item.title}</div>
+        <div class="price-container">${priceHTML}</div>
+        <a href="${item.url}" target="_blank" rel="nofollow" class="buy-btn">
+          <i class="fas fa-shopping-cart"></i> לצפייה במוצר
+        </a>
+        
+        <div class="action-buttons">
+          <button class="action-btn" onclick="copyToClipboard('${item.url}')" title="העתק קישור">
+            <i class="far fa-copy"></i> העתק
+          </button>
+          <a href="${waShareUrl}" target="_blank" class="action-btn btn-wa" title="שתף ב-WhatsApp">
+            <i class="fab fa-whatsapp"></i> שתף
+          </a>
+        </div>
+      `;
+
+      return card;
+    }
+
+    // הוספת מוצר שיתורגם (מוצג בהדרגה)
+    async function addProductWithTranslation(rawItem, index) {
+      // יצירת מוצר עם כותרת מקורית זמנית
+      const tempItem = {
+        ...rawItem,
+        id: index,
+        title: rawItem.rawTitle // כותרת מקורית עד לתרגום
+      };
+
+      // יצירת כרטיס והוספה ל-grid
+      const card = createProductCard(tempItem);
+      card.classList.add('translating'); // אנימציה שמראה שהמוצר מתורגם
       
-      return translated;
+      const container = document.getElementById('products-container');
+      container.appendChild(card);
+
+      // תרגום הכותרת
+      const translatedTitle = await translateText(rawItem.rawTitle);
+      
+      // עדכון הכותרת בכרטיס
+      const titleElement = card.querySelector('.product-title');
+      titleElement.textContent = translatedTitle;
+      titleElement.title = translatedTitle;
+      
+      // עדכון קישור WhatsApp עם הכותרת המתורגמת
+      const waLink = card.querySelector('.btn-wa');
+      const waShareUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(translatedTitle + ' - ' + rawItem.url)}`;
+      waLink.href = waShareUrl;
+
+      // עדכון המוצר במערך
+      const productIndex = allProducts.findIndex(p => p.id === index);
+      if (productIndex !== -1) {
+        allProducts[productIndex].title = translatedTitle;
+      }
+
+      // סימון שהתרגום הושלם
+      card.classList.remove('translating');
+      card.classList.add('translated');
+
+      // עדכון התקדמות
+      translatedCount++;
+      updateProgress(translatedCount, totalProducts);
+
+      // הסתרת סרגל התקדמות כשכל המוצרים תורגמו
+      if (translatedCount === totalProducts) {
+        setTimeout(() => {
+          document.getElementById('translationProgress').classList.remove('active');
+        }, 500);
+      }
+    }
+
+    // עדכון סרגל התקדמות
+    function updateProgress(current, total) {
+      const percent = Math.round((current / total) * 100);
+      document.getElementById('progressFill').style.width = percent + '%';
+      document.getElementById('progressText').textContent = percent + '%';
+      
+      if (current === total) {
+        document.getElementById('translationStatus').textContent = '✅ כל המוצרים תורגמו!';
+      } else {
+        document.getElementById('translationStatus').textContent = `מתרגם מוצרים לעברית... (${current}/${total})`;
+      }
     }
 
     async function loadProducts() {
@@ -355,98 +459,60 @@
               image, 
               price, 
               oldPrice,
-              title: rawTitle // placeholder עד שהתרגום יסתיים
+              title: rawTitle // placeholder זמני
             });
           }
         }
 
+        totalProducts = rawProducts.length;
+        translatedCount = 0;
+
+        if (totalProducts === 0) {
+          document.getElementById('products-container').innerHTML = '<p style="text-align:center;padding:40px;color:#666;">לא נמצאו מוצרים.</p>';
+          return;
+        }
+
+        // ניקוי ה-loading
+        const container = document.getElementById('products-container');
+        container.innerHTML = '';
+
         // הצגת סרגל התקדמות
         const progressContainer = document.getElementById('translationProgress');
-        const progressFill = document.getElementById('progressFill');
-        const progressText = document.getElementById('progressText');
-        
         progressContainer.classList.add('active');
-        
-        // עדכון הודעת טעינה
-        const container = document.getElementById('products-container');
-        container.innerHTML = `
-          <div class="loading-spinner">
-            <i class="fas fa-spinner fa-pulse"></i>
-            מתרגם ${rawProducts.length} מוצרים לעברית...
-          </div>
-        `;
+        document.getElementById('translationStatus').textContent = `מתרגם מוצרים לעברית... (0/${totalProducts})`;
+        document.getElementById('progressFill').style.width = '0%';
+        document.getElementById('progressText').textContent = '0%';
 
-        // תרגום המוצרים
-        const translatedProducts = await translateProducts(rawProducts, (current, total) => {
-          const percent = Math.round((current / total) * 100);
-          progressFill.style.width = percent + '%';
-          progressText.textContent = percent + '%';
-        });
+        // הוספת כל המוצרים למערך
+        allProducts = rawProducts.map((item, index) => ({
+          ...item,
+          id: index
+        }));
 
-        // הסתרת סרגל התקדמות
-        progressContainer.classList.remove('active');
-
-        allProducts = translatedProducts;
-        renderProducts(allProducts);
+        // התחלת תרגום כל מוצר בנפרד - כל מוצר יופיע מיד אחרי התרגום
+        for (let i = 0; i < rawProducts.length; i++) {
+          await addProductWithTranslation(rawProducts[i], i);
+        }
 
       } catch (err) {
         console.error('שגיאה בטעינת הקובץ:', err);
         document.getElementById('products-container').innerHTML = '<p style="text-align:center;padding:40px;color:#e74c3c;">אירעה שגיאה בטעינת המוצרים. אנא נסה שוב מאוחר יותר.</p>';
+        document.getElementById('translationProgress').classList.remove('active');
       }
-    }
-
-    function renderProducts(products) {
-      const container = document.getElementById('products-container');
-      container.innerHTML = '';
-
-      if (products.length === 0) {
-        container.innerHTML = '<p style="text-align:center;padding:40px;color:#666;">לא נמצאו מוצרים תואמים.</p>';
-        return;
-      }
-
-      products.forEach(item => {
-        const card = document.createElement('div');
-        card.className = 'product-card';
-
-        const priceIls = item.price ? (parseFloat(item.price) * usdToIlsRate).toFixed(2) : null;
-        const oldPriceIls = item.oldPrice ? (parseFloat(item.oldPrice) * usdToIlsRate).toFixed(2) : null;
-
-        let priceHTML = '';
-        if (oldPriceIls && parseFloat(oldPriceIls) > parseFloat(priceIls)) {
-          priceHTML = `<span class="old-price">₪${oldPriceIls}</span> `;
-        }
-        if (priceIls) {
-          priceHTML += `<span class="current-price">₪${priceIls}</span>`;
-        }
-
-        const waShareUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(item.title + ' - ' + item.url)}`;
-
-        card.innerHTML = `
-          <img src="${item.image}" alt="${item.title}" loading="lazy" referrerpolicy="no-referrer">
-          <div class="product-title" title="${item.title}">${item.title}</div>
-          <div class="price-container">${priceHTML}</div>
-          <a href="${item.url}" target="_blank" rel="nofollow" class="buy-btn">
-            <i class="fas fa-shopping-cart"></i> לצפייה במוצר
-          </a>
-          
-          <div class="action-buttons">
-            <button class="action-btn" onclick="copyToClipboard('${item.url}')" title="העתק קישור">
-              <i class="far fa-copy"></i> העתק
-            </button>
-            <a href="${waShareUrl}" target="_blank" class="action-btn btn-wa" title="שתף ב-WhatsApp">
-              <i class="fab fa-whatsapp"></i> שתף
-            </a>
-          </div>
-        `;
-
-        container.appendChild(card);
-      });
     }
 
     function filterProducts() {
       const query = document.getElementById('searchInput').value.toLowerCase();
-      const filtered = allProducts.filter(p => p.title.toLowerCase().includes(query));
-      renderProducts(filtered);
+      const cards = document.querySelectorAll('.product-card');
+      
+      cards.forEach(card => {
+        const title = card.querySelector('.product-title').textContent.toLowerCase();
+        if (title.includes(query)) {
+          card.style.display = 'flex';
+        } else {
+          card.style.display = 'none';
+        }
+      });
     }
 
     function copyToClipboard(text) {
