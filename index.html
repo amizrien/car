@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>קטלוג הדילים והמבצעים - AliExpress Affiliate</title>
+    <!-- PapaParse לקריאת קובצי CSV -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
     <style>
         :root {
@@ -81,7 +82,7 @@
             display: none;
         }
 
-        .upload-label {
+        .upload-label, .btn-translate {
             background: #28a745;
             color: white;
             padding: 12px 20px;
@@ -94,11 +95,18 @@
             gap: 8px;
             transition: background 0.2s;
             user-select: none;
+            border: none;
         }
 
-        .upload-label:hover {
-            background: #218838;
+        .upload-label:hover { background: #218838; }
+
+        .btn-translate {
+            background: #007bff;
+            display: none;
         }
+
+        .btn-translate:hover { background: #0056b3; }
+        .btn-translate:disabled { background: #ccc; cursor: not-allowed; }
 
         .stats-bar {
             margin-bottom: 15px;
@@ -198,9 +206,7 @@
             cursor: pointer;
         }
 
-        .btn:hover {
-            background: var(--primary-hover);
-        }
+        .btn:hover { background: var(--primary-hover); }
 
         .share-row {
             display: flex;
@@ -223,9 +229,7 @@
             transition: opacity 0.2s;
         }
 
-        .btn-share:hover {
-            opacity: 0.9;
-        }
+        .btn-share:hover { opacity: 0.9; }
 
         .btn-whatsapp { background-color: var(--whatsapp-color); }
         .btn-telegram { background-color: var(--telegram-color); }
@@ -256,14 +260,14 @@
     
     <div class="controls">
         <label for="file-input" class="upload-label">
-            📁 טען קובץ CSV מ-Ad Center
+            📁 טען קובץ CSV
         </label>
         <input type="file" id="file-input" accept=".csv">
-        <input type="text" id="search" placeholder="חפש מוצר לפי שם..." oninput="filterProducts()">
+        <button id="translate-btn" class="btn-translate" onclick="translateAllProducts()">🌐 תרגם מוצרים לעברית</button>
+        <input type="text" id="search" placeholder="חפש מוצר..." oninput="filterProducts()">
     </div>
 
     <div id="stats-bar" class="stats-bar"></div>
-
     <div id="product-grid" class="grid"></div>
 </div>
 
@@ -282,30 +286,28 @@
             complete: function(results) {
                 allProducts = results.data;
                 const stats = document.getElementById('stats-bar');
+                const translateBtn = document.getElementById('translate-btn');
+                
                 stats.style.display = 'block';
                 stats.innerText = `נטענו ${allProducts.length} מוצרים בהצלחה.`;
+                translateBtn.style.display = 'inline-flex';
+                
                 renderProducts(allProducts);
             }
         });
     });
 
-    // פונקציית עזר למציאת ערך לפי מספר שמות עמודה אפשריים
- function getFieldValue(item, possibleKeys) {
-    if (!item) return '';
-    
-    // עוברים על כל המפתחות הקיימים באובייקט המוצר
-    const itemKeys = Object.keys(item);
-    
-    for (let key of possibleKeys) {
-        // מחפשים מפתח שמתאים (התעלמות מרווחים בקצוות ומאותיות גדולות/קטנות)
-        const foundKey = itemKeys.find(k => k.trim().toLowerCase() === key.trim().toLowerCase());
-        
-        if (foundKey && item[foundKey] && item[foundKey].toString().trim() !== '') {
-            return item[foundKey].toString().trim();
+    function getFieldValue(item, possibleKeys) {
+        if (!item) return '';
+        const itemKeys = Object.keys(item);
+        for (let key of possibleKeys) {
+            const foundKey = itemKeys.find(k => k.trim().toLowerCase() === key.trim().toLowerCase());
+            if (foundKey && item[foundKey] && item[foundKey].toString().trim() !== '') {
+                return item[foundKey].toString().trim();
+            }
         }
+        return '';
     }
-    return '';
-}
 
     function renderProducts(products) {
         const grid = document.getElementById('product-grid');
@@ -316,11 +318,11 @@
             return;
         }
 
-        products.slice(0, 100).forEach(item => {
-            // התאמה מדויקת לעמודה Product Desc מהאקסל שלך
-            const title = getFieldValue(item, ['product desc', 'product description', 'product title', 'title', 'product name', 'subject']) || 'מוצר ללא שם';
+        products.slice(0, 100).forEach((item, index) => {
+            // בודקים אם יש כבר תרגום לעברית, אם לא - משתמשים בשם המקורי
+            const title = item.translated_title || getFieldValue(item, ['Product Desc', 'Product Description', 'Product Title', 'title', 'Product Name']) || 'מוצר ללא שם';
             const image = getFieldValue(item, ['Image Url', 'Product Image URL', 'image_url', 'ImageUrl']);
-            const price = getFieldValue(item, ['Discount Price', 'Discount', 'Target Sale Price', 'price', 'Sale Price']);
+            const price = getFieldValue(item, ['Discount Price', 'Discount', 'Target Sale Price', 'price']);
             const origPrice = getFieldValue(item, ['Origin Price', 'Original Price']);
             const currency = getFieldValue(item, ['Currency']) || 'ILS';
             const promotionUrl = getFieldValue(item, ['Promotion Link', 'Direct Link', 'Promotion Url', 'link', 'URL']) || '#';
@@ -328,7 +330,6 @@
             const formattedPrice = price ? `${price} ${currency}` : '';
             const formattedOrigPrice = origPrice ? `${origPrice} ${currency}` : '';
 
-            // טקסט מוכן לשיתוף
             const shareText = `🔥 **דיל שווה ב-AliExpress!**\n🛍️ ${title}\n💰 מחיר: ${formattedPrice}\n👉 לרכישה: ${promotionUrl}`;
 
             const card = document.createElement('div');
@@ -338,7 +339,7 @@
                     <div class="card-img-wrap">
                         ${image ? `<img src="${image}" alt="${title}" loading="lazy">` : '<span>אין תמונה</span>'}
                     </div>
-                    <h3>${title}</h3>
+                    <h3 id="title-${index}">${title}</h3>
                 </div>
                 <div>
                     <div class="price-wrap">
@@ -348,15 +349,9 @@
                     <div class="action-buttons">
                         <a href="${promotionUrl}" target="_blank" rel="nofollow sponsored" class="btn">לרכישה באליאקספרס</a>
                         <div class="share-row">
-                            <button class="btn-share btn-whatsapp" onclick="shareWhatsApp('${escapeJs(title)}', '${formattedPrice}', '${promotionUrl}')">
-                                WhatsApp
-                            </button>
-                            <button class="btn-share btn-telegram" onclick="shareTelegram('${escapeJs(title)}', '${formattedPrice}', '${promotionUrl}')">
-                                Telegram
-                            </button>
-                            <button class="btn-share btn-copy" onclick="copyShareText('${escapeJs(shareText)}')">
-                                העתק
-                            </button>
+                            <button class="btn-share btn-whatsapp" onclick="shareWhatsApp('${escapeJs(title)}', '${formattedPrice}', '${promotionUrl}')">WhatsApp</button>
+                            <button class="btn-share btn-telegram" onclick="shareTelegram('${escapeJs(title)}', '${formattedPrice}', '${promotionUrl}')">Telegram</button>
+                            <button class="btn-share btn-copy" onclick="copyShareText('${escapeJs(shareText)}')">העתק</button>
                         </div>
                     </div>
                 </div>
@@ -365,22 +360,56 @@
         });
     }
 
+    // מנגנון תרגום אוטומטי
+    async function translateAllProducts() {
+        const btn = document.getElementById('translate-btn');
+        btn.disabled = true;
+        btn.innerText = 'מחרגם... אנא המתן';
+
+        const itemsToTranslate = allProducts.slice(0, 100);
+
+        for (let i = 0; i < itemsToTranslate.length; i++) {
+            const item = itemsToTranslate[i];
+            const originalTitle = getFieldValue(item, ['Product Desc', 'Product Description', 'Product Title', 'title']);
+            
+            if (originalTitle && !item.translated_title) {
+                try {
+                    // קיצוץ כותרת ארוכה מדי לתרגום מהיר יותר
+                    const shortTitle = originalTitle.split(' ').slice(0, 12).join(' ');
+                    const res = await fetch(`https://api.mymemory.translated.net/get?q=${encodeURIComponent(shortTitle)}&langpair=en|he`);
+                    const data = await res.json();
+                    
+                    if (data && data.responseData && data.responseData.translatedText) {
+                        item.translated_title = data.responseData.translatedText;
+                        const titleEl = document.getElementById(`title-${i}`);
+                        if (titleEl) titleEl.innerText = item.translated_title;
+                    }
+                } catch (e) {
+                    console.error('שגיאה בתרגום מוצר', e);
+                }
+            }
+        }
+
+        btn.disabled = false;
+        btn.innerText = '✔ המוצרים תורגמו!';
+        renderProducts(allProducts);
+    }
+
     function filterProducts() {
         const query = document.getElementById('search').value.toLowerCase();
         const filtered = allProducts.filter(p => {
-            const title = (getFieldValue(p, ['Product Desc', 'Product Description', 'Product Title', 'title', 'Product Name'])).toLowerCase();
+            const title = (p.translated_title || getFieldValue(p, ['Product Desc', 'Product Description', 'Product Title', 'title'])).toLowerCase();
             return title.includes(query);
         });
         renderProducts(filtered);
     }
 
-    // פונקציות שיתוף
     function escapeJs(str) {
         return str.replace(/'/g, "\\'").replace(/"/g, '&quot;').replace(/\n/g, ' ');
     }
 
     function shareWhatsApp(title, price, url) {
-        const text = `🔥 *דיל שווה ב-AliExpress!*\n\n🛍️ ${title}\n💰 מחיר: ${price}\n\n👉 לרכישה לחצו כאן: ${url}`;
+        const text = `🔥 *דיל שווה ב-AliExpress!*\n\n🛍️ ${title}\n💰 מחיר: ${price}\n\n👉 לרכישה: ${url}`;
         window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`, '_blank');
     }
 
@@ -390,20 +419,14 @@
     }
 
     function copyShareText(text) {
-        navigator.clipboard.writeText(text).then(() => {
-            showToast("הטקסט והקישור הועתקו ללוח!");
-        }).catch(() => {
-            showToast("שגיאה בהעתקה");
-        });
+        navigator.clipboard.writeText(text).then(() => showToast("הטקסט והקישור הועתקו ללוח!"));
     }
 
     function showToast(msg) {
         const toast = document.getElementById('toast');
         toast.innerText = msg;
         toast.style.display = 'block';
-        setTimeout(() => {
-            toast.style.display = 'none';
-        }, 2500);
+        setTimeout(() => toast.style.display = 'none', 2500);
     }
 </script>
 
