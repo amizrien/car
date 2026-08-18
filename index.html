@@ -339,46 +339,19 @@
       }, 2500);
     }
 
-    // ===============================================================
-    //  פונקציית קיצור קישורים (משתמשת בשירות rzekl.com במקום TinyURL)
-    // ===============================================================
-    async function shortenUrl(longUrl) {
-      try {
-        // אם זה כבר קישור של rzekl, נוסיף לו &short=1
-        // אם זה לא, ננסה בכל זאת לבקש מהם לקצר
-        let urlToShorten = longUrl;
-        if (!urlToShorten.includes('rzekl.com')) {
-          return longUrl; // אם זה לא קישור rzekl, נחזיר אותו כמו שהוא
-        }
-
-        // מוסיפים &short=1 לסוף הקישור (זה אומר ל-rzekl לקצר אותו)
-        const separator = urlToShorten.includes('?') ? '&' : '?';
-        const apiUrl = `${urlToShorten}${separator}short=1`;
-        
-        // שולחים בקשה ל-rzekl
-        const response = await fetch(apiUrl, { method: 'HEAD' });
-        
-        // אם הצלחנו, נחזיר את הקישור המקורי (כי rzekl מפנה אוטומטית לקיצור)
-        // בפועל, rzekl יקצר את זה מצד השרת. אנחנו רק צריכים לוודא שהוא נשלח נכון.
-        // נחזיר את הקישור עם &short=1, זה יגרום ל-rzekl לקצר אותו אוטומטית.
-        return apiUrl;
-      } catch (e) {
-        console.warn("כשל בקיצור הקישור:", e);
-        return longUrl;
-      }
-    }
-
-    async function copyToClipboard(url) {
-      const shortUrl = await shortenUrl(url);
-      
+    // ====================================================
+    // פונקציות ההעתקה והשיתוף (מעודכנות לבטיחות מלאה)
+    // ====================================================
+    function copyToClipboard(url) {
+      // מעתיק את הקישור בדיוק כמו שהוא
       if (navigator.clipboard && navigator.clipboard.writeText) {
-        navigator.clipboard.writeText(shortUrl).then(() => {
-          showToast('✅ קישור קצר הועתק!');
+        navigator.clipboard.writeText(url).then(() => {
+          showToast('✅ הקישור הועתק!');
         }).catch(() => {
-          fallbackCopy(shortUrl);
+          fallbackCopy(url);
         });
       } else {
-        fallbackCopy(shortUrl);
+        fallbackCopy(url);
       }
     }
 
@@ -393,7 +366,7 @@
       try {
         textarea.select();
         document.execCommand('copy');
-        showToast('✅ קישור קצר הועתק!');
+        showToast('✅ הקישור הועתק!');
       } catch (err) {
         showToast('❌ לא הצלחנו להעתיק', false);
         console.error('שגיאת העתקה:', err);
@@ -402,15 +375,14 @@
       }
     }
 
-    async function shareToWhatsApp(title, url) {
-      const shortUrl = await shortenUrl(url);
-      const message = `${title}\n${shortUrl}`;
+    function shareToWhatsApp(title, url) {
+      const message = `${title}\n${url}`;
       const encodedMessage = encodeURIComponent(message);
       const waUrl = `https://api.whatsapp.com/send?text=${encodedMessage}`;
       
       window.open(waUrl, '_blank', 'noopener,noreferrer');
     }
-    // ===============================================================
+    // ====================================================
 
     function createProductCard(item) {
       const card = document.createElement('div');
@@ -440,7 +412,7 @@
         </a>
         
         <div class="action-buttons">
-          <button class="action-btn" onclick="copyToClipboard('${escapedUrl}')" title="העתק קישור קצר">
+          <button class="action-btn" onclick="copyToClipboard('${escapedUrl}')" title="העתק קישור">
             <i class="far fa-copy"></i> העתק
           </button>
           <button class="action-btn btn-wa" onclick="shareToWhatsApp('${escapedTitle}', '${escapedUrl}')" title="שתף ב-WhatsApp">
