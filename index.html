@@ -176,6 +176,75 @@
       background-color: #d4efdf;
       color: #0e6251;
     }
+
+    .loading-spinner {
+      text-align: center;
+      padding: 40px 20px;
+      font-size: 18px;
+      color: #555;
+    }
+
+    .loading-spinner i {
+      font-size: 36px;
+      margin-bottom: 15px;
+      display: block;
+      color: #ff4e50;
+    }
+
+    .status-bar {
+      max-width: 1200px;
+      margin: 0 auto 15px auto;
+      text-align: center;
+      font-size: 14px;
+      color: #666;
+      padding: 8px;
+      background: #f0f4f8;
+      border-radius: 6px;
+      display: none;
+    }
+
+    .status-bar.active {
+      display: block;
+    }
+
+    .translation-progress {
+      max-width: 1200px;
+      margin: 0 auto 15px auto;
+      background: #f0f4f8;
+      border-radius: 8px;
+      padding: 12px 20px;
+      display: none;
+      align-items: center;
+      gap: 15px;
+    }
+
+    .translation-progress.active {
+      display: flex;
+    }
+
+    .progress-bar {
+      flex: 1;
+      height: 8px;
+      background: #e2e8f0;
+      border-radius: 4px;
+      overflow: hidden;
+    }
+
+    .progress-bar-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #ff4e50, #f9d423);
+      width: 0%;
+      transition: width 0.3s ease;
+      border-radius: 4px;
+    }
+
+    .progress-text {
+      font-size: 14px;
+      color: #555;
+      white-space: nowrap;
+      min-width: 80px;
+      text-align: left;
+    }
   </style>
 </head>
 <body>
@@ -190,14 +259,27 @@
     </div>
   </div>
 
+  <div class="translation-progress" id="translationProgress">
+    <span style="font-size:16px;">🌐</span>
+    <span style="font-size:14px;color:#555;">מתרגם מוצרים לעברית...</span>
+    <div class="progress-bar">
+      <div class="progress-bar-fill" id="progressFill"></div>
+    </div>
+    <span class="progress-text" id="progressText">0%</span>
+  </div>
+
   <div id="products-container" class="products-grid">
-    <p>טוען מוצרים ומתרגם לעברית...</p>
+    <div class="loading-spinner">
+      <i class="fas fa-spinner fa-pulse"></i>
+      טוען מוצרים ומתרגם לעברית...
+    </div>
   </div>
 
   <script>
     const csvUrl = 'products.csv';
     const usdToIlsRate = 3.70;
     let allProducts = [];
+    let isTranslating = false;
 
     // פונקציית תרגום פשוטה וישירה דרך ה-API החופשי של גוגל
     async function translateText(text) {
@@ -213,6 +295,27 @@
         console.error('שגיאה בתרגום:', err);
       }
       return text; // אם התרגום נכשל, יוחזר הטקסט המקורי
+    }
+
+    // תרגום מוצרים עם תצוגת התקדמות
+    async function translateProducts(products, onProgress) {
+      const translated = [];
+      const total = products.length;
+      
+      for (let i = 0; i < total; i++) {
+        const item = products[i];
+        const translatedTitle = await translateText(item.rawTitle);
+        translated.push({
+          ...item,
+          title: translatedTitle
+        });
+        
+        if (onProgress) {
+          onProgress(i + 1, total);
+        }
+      }
+      
+      return translated;
     }
 
     async function loadProducts() {
@@ -231,7 +334,7 @@
         const priceIdx = headers.indexOf('price');
         const oldPriceIdx = headers.indexOf('oldprice');
 
-        allProducts = [];
+        const rawProducts = [];
 
         for (let i = 1; i < lines.length; i++) {
           const line = lines[i].trim();
@@ -246,17 +349,49 @@
           const oldPrice = oldPriceIdx !== -1 ? cols[oldPriceIdx] : '';
 
           if (rawTitle && url && image) {
-            // תרגום הכותרת לעברית בזמן אמת
-            const title = await translateText(rawTitle);
-            allProducts.push({ title, url, image, price, oldPrice });
+            rawProducts.push({ 
+              rawTitle, 
+              url, 
+              image, 
+              price, 
+              oldPrice,
+              title: rawTitle // placeholder עד שהתרגום יסתיים
+            });
           }
         }
 
+        // הצגת סרגל התקדמות
+        const progressContainer = document.getElementById('translationProgress');
+        const progressFill = document.getElementById('progressFill');
+        const progressText = document.getElementById('progressText');
+        
+        progressContainer.classList.add('active');
+        
+        // עדכון הודעת טעינה
+        const container = document.getElementById('products-container');
+        container.innerHTML = `
+          <div class="loading-spinner">
+            <i class="fas fa-spinner fa-pulse"></i>
+            מתרגם ${rawProducts.length} מוצרים לעברית...
+          </div>
+        `;
+
+        // תרגום המוצרים
+        const translatedProducts = await translateProducts(rawProducts, (current, total) => {
+          const percent = Math.round((current / total) * 100);
+          progressFill.style.width = percent + '%';
+          progressText.textContent = percent + '%';
+        });
+
+        // הסתרת סרגל התקדמות
+        progressContainer.classList.remove('active');
+
+        allProducts = translatedProducts;
         renderProducts(allProducts);
 
       } catch (err) {
         console.error('שגיאה בטעינת הקובץ:', err);
-        document.getElementById('products-container').innerHTML = '<p>אירעה שגיאה בטעינת המוצרים.</p>';
+        document.getElementById('products-container').innerHTML = '<p style="text-align:center;padding:40px;color:#e74c3c;">אירעה שגיאה בטעינת המוצרים. אנא נסה שוב מאוחר יותר.</p>';
       }
     }
 
@@ -265,7 +400,7 @@
       container.innerHTML = '';
 
       if (products.length === 0) {
-        container.innerHTML = '<p>לא נמצאו מוצרים תואמים.</p>';
+        container.innerHTML = '<p style="text-align:center;padding:40px;color:#666;">לא נמצאו מוצרים תואמים.</p>';
         return;
       }
 
@@ -316,6 +451,15 @@
 
     function copyToClipboard(text) {
       navigator.clipboard.writeText(text).then(() => {
+        alert('הקישור הועתק בהצלחה!');
+      }).catch(() => {
+        // fallback
+        const textarea = document.createElement('textarea');
+        textarea.value = text;
+        document.body.appendChild(textarea);
+        textarea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textarea);
         alert('הקישור הועתק בהצלחה!');
       });
     }
