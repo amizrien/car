@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>קטלוג הדילים והמבצעים - AliExpress Affiliate</title>
-    <!-- PapaParse לקריאת קובצי CSV -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
     <style>
         :root {
@@ -311,8 +310,8 @@
         }
 
         products.slice(0, 100).forEach(item => {
-            // מיפוי שדות מהקובץ
-            const title = getFieldValue(item, ['Product Detail Url', 'Product Title', 'title', 'Product Name', 'subject']) || 'מוצר ללא שם';
+            // מיפוי שדות מהקובץ: העמודה המכילה את שם המוצר באקסל שלך
+            const title = getFieldValue(item, ['Product Description', 'Product Title', 'title', 'Product Name', 'subject']) || 'מוצר ללא שם';
             const image = getFieldValue(item, ['Image Url', 'Product Image URL', 'image_url', 'ImageUrl']);
             const price = getFieldValue(item, ['Discount Price', 'Target Sale Price', 'price', 'Sale Price']);
             const origPrice = getFieldValue(item, ['Origin Price', 'Original Price']);
@@ -362,7 +361,7 @@
     function filterProducts() {
         const query = document.getElementById('search').value.toLowerCase();
         const filtered = allProducts.filter(p => {
-            const title = (getFieldValue(p, ['Product Detail Url', 'Product Title', 'title', 'Product Name'])).toLowerCase();
+            const title = (getFieldValue(p, ['Product Description', 'Product Title', 'title', 'Product Name'])).toLowerCase();
             return title.includes(query);
         });
         renderProducts(filtered);
