@@ -111,7 +111,18 @@
       font-size: 18px;
       text-align: center;
       font-weight: bold;
-      color: #333;
+    }
+
+    .old-price {
+      text-decoration: line-through;
+      color: #95a5a6;
+      font-size: 14px;
+      margin-left: 6px;
+      font-weight: normal;
+    }
+
+    .current-price {
+      color: #e74c3c;
     }
 
     .buy-btn {
@@ -373,8 +384,23 @@
       card.className = 'product-card';
       card.dataset.productId = item.id;
 
-      // קוד לצפייה במוצר (ללא מחיר כי בקובץ שלך אין מחירים)
-      let priceHTML = `<span style="font-size:16px;color:#555;">צפה במוצר</span>`;
+      let priceHTML = '';
+
+      // אם יש מחיר מוזל, מציגים אותו עם מחיר מקורי מחוק
+      if (item.discountPrice && item.discountPrice !== item.originPrice) {
+        priceHTML = `
+          <span class="old-price">₪${item.originPrice}</span> 
+          <span class="current-price">₪${item.discountPrice}</span>
+        `;
+      } 
+      // אם אין מבצע, מציגים מחיר רגיל
+      else if (item.originPrice) {
+        priceHTML = `<span class="current-price">₪${item.originPrice}</span>`;
+      } 
+      // אם אין בכלל מחיר
+      else {
+        priceHTML = `<span style="font-size:16px;color:#555;">צפה במוצר</span>`;
+      }
 
       const escapedUrl = item.url.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
       const escapedTitle = item.title.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
@@ -462,14 +488,15 @@
         const lines = text.trim().split(/\r?\n/);
         if (lines.length <= 1) return;
 
-        // פארסר ה-CSV המעודכן שיודע לקרוא את הפורמט של AliExpress
-        // כותרות צפויות: ProductId, Image Url, Video Url, Product Desc
+        // פארסר המעודכן לקובץ האמיתי של AliExpress שצירפת
         const headers = parseCsvLine(lines[0], ',').map(h => h.trim());
         
-        const productIdIdx = headers.indexOf('ProductId');
-        const imageUrlIdx = headers.indexOf('Image Url');
-        const videoUrlIdx = headers.indexOf('Video Url');
-        const productDescIdx = headers.indexOf('Product Desc');
+        const productIdIdx      = headers.indexOf('ProductId');
+        const imageUrlIdx       = headers.indexOf('Image Url');
+        const productDescIdx    = headers.indexOf('Product Desc');
+        const originPriceIdx    = headers.indexOf('Origin Price');
+        const discountPriceIdx  = headers.indexOf('Discount Price');
+        const promotionUrlIdx   = headers.indexOf('Promotion Url');
 
         const rawProducts = [];
 
@@ -480,9 +507,12 @@
           const cols = parseCsvLine(line, ',');
 
           const rawTitle = cols[productDescIdx];
-          const url = cols[videoUrlIdx];
+          // שים לב! הקישור חשוב נמצא ב-Promotion Url, לא ב-Video Url
+          const url = cols[promotionUrlIdx]; 
           const image = cols[imageUrlIdx];
           const id = cols[productIdIdx];
+          const originPrice = cols[originPriceIdx] ? parseFloat(cols[originPriceIdx]) : null;
+          const discountPrice = cols[discountPriceIdx] ? parseFloat(cols[discountPriceIdx]) : null;
 
           if (rawTitle && url && image) {
             rawProducts.push({ 
@@ -490,6 +520,8 @@
               url, 
               image, 
               id,
+              originPrice,
+              discountPrice,
               title: rawTitle
             });
           }
@@ -523,7 +555,7 @@
 
       } catch (err) {
         console.error('שגיאה בטעינת הקובץ:', err);
-        document.getElementById('products-container').innerHTML = '<p style="text-align:center;padding:40px;color:#e74c3c;">שגיאה בקריאת הקובץ. ודא שהקובץ הוא CSV תקין.</p>';
+        document.getElementById('products-container').innerHTML = '<p style="text-align:center;padding:40px;color:#e74c3c;">שגיאה בקריאת הקובץ. בדוק את מבנה ה-CSV.</p>';
         document.getElementById('translationProgress').classList.remove('active');
       }
     }
