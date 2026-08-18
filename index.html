@@ -111,18 +111,7 @@
       font-size: 18px;
       text-align: center;
       font-weight: bold;
-    }
-
-    .old-price {
-      text-decoration: line-through;
-      color: #95a5a6;
-      font-size: 14px;
-      margin-left: 6px;
-      font-weight: normal;
-    }
-
-    .current-price {
-      color: #e74c3c;
+      color: #333;
     }
 
     .buy-btn {
@@ -308,7 +297,6 @@
 
   <script>
     const csvUrl = 'products.csv';
-    const usdToIlsRate = 3.70;
     let allProducts = [];
     let totalProducts = 0;
     let translatedCount = 0;
@@ -339,11 +327,8 @@
       }, 2500);
     }
 
-    // ====================================================
-    // פונקציות ההעתקה והשיתוף (מעודכנות לבטיחות מלאה)
-    // ====================================================
+    // פונקציות העתקה ושיתוף
     function copyToClipboard(url) {
-      // מעתיק את הקישור בדיוק כמו שהוא
       if (navigator.clipboard && navigator.clipboard.writeText) {
         navigator.clipboard.writeText(url).then(() => {
           showToast('✅ הקישור הועתק!');
@@ -382,23 +367,14 @@
       
       window.open(waUrl, '_blank', 'noopener,noreferrer');
     }
-    // ====================================================
 
     function createProductCard(item) {
       const card = document.createElement('div');
       card.className = 'product-card';
       card.dataset.productId = item.id;
 
-      const priceIls = item.price ? (parseFloat(item.price) * usdToIlsRate).toFixed(2) : null;
-      const oldPriceIls = item.oldPrice ? (parseFloat(item.oldPrice) * usdToIlsRate).toFixed(2) : null;
-
-      let priceHTML = '';
-      if (oldPriceIls && parseFloat(oldPriceIls) > parseFloat(priceIls)) {
-        priceHTML = `<span class="old-price">₪${oldPriceIls}</span> `;
-      }
-      if (priceIls) {
-        priceHTML += `<span class="current-price">₪${priceIls}</span>`;
-      }
+      // קוד לצפייה במוצר (ללא מחיר כי בקובץ שלך אין מחירים)
+      let priceHTML = `<span style="font-size:16px;color:#555;">צפה במוצר</span>`;
 
       const escapedUrl = item.url.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
       const escapedTitle = item.title.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
@@ -486,13 +462,14 @@
         const lines = text.trim().split(/\r?\n/);
         if (lines.length <= 1) return;
 
-        const headers = parseCsvLine(lines[0], ';').map(h => h.trim().toLowerCase());
+        // פארסר ה-CSV המעודכן שיודע לקרוא את הפורמט של AliExpress
+        // כותרות צפויות: ProductId, Image Url, Video Url, Product Desc
+        const headers = parseCsvLine(lines[0], ',').map(h => h.trim());
         
-        const titleIdx = headers.indexOf('title');
-        const urlIdx = headers.indexOf('url');
-        const imageIdx = headers.indexOf('image');
-        const priceIdx = headers.indexOf('price');
-        const oldPriceIdx = headers.indexOf('oldprice');
+        const productIdIdx = headers.indexOf('ProductId');
+        const imageUrlIdx = headers.indexOf('Image Url');
+        const videoUrlIdx = headers.indexOf('Video Url');
+        const productDescIdx = headers.indexOf('Product Desc');
 
         const rawProducts = [];
 
@@ -500,21 +477,19 @@
           const line = lines[i].trim();
           if (!line) continue;
 
-          const cols = parseCsvLine(line, ';');
+          const cols = parseCsvLine(line, ',');
 
-          const rawTitle = cols[titleIdx];
-          const url = cols[urlIdx];
-          const image = cols[imageIdx];
-          const price = cols[priceIdx];
-          const oldPrice = oldPriceIdx !== -1 ? cols[oldPriceIdx] : '';
+          const rawTitle = cols[productDescIdx];
+          const url = cols[videoUrlIdx];
+          const image = cols[imageUrlIdx];
+          const id = cols[productIdIdx];
 
           if (rawTitle && url && image) {
             rawProducts.push({ 
               rawTitle, 
               url, 
               image, 
-              price, 
-              oldPrice,
+              id,
               title: rawTitle
             });
           }
@@ -524,7 +499,7 @@
         translatedCount = 0;
 
         if (totalProducts === 0) {
-          document.getElementById('products-container').innerHTML = '<p style="text-align:center;padding:40px;color:#666;">לא נמצאו מוצרים.</p>';
+          document.getElementById('products-container').innerHTML = '<p style="text-align:center;padding:40px;color:#666;">לא נמצאו מוצרים בקובץ.</p>';
           return;
         }
 
@@ -548,7 +523,7 @@
 
       } catch (err) {
         console.error('שגיאה בטעינת הקובץ:', err);
-        document.getElementById('products-container').innerHTML = '<p style="text-align:center;padding:40px;color:#e74c3c;">אירעה שגיאה בטעינת המוצרים. אנא נסה שוב מאוחר יותר.</p>';
+        document.getElementById('products-container').innerHTML = '<p style="text-align:center;padding:40px;color:#e74c3c;">שגיאה בקריאת הקובץ. ודא שהקובץ הוא CSV תקין.</p>';
         document.getElementById('translationProgress').classList.remove('active');
       }
     }
@@ -567,6 +542,7 @@
       });
     }
 
+    // פונקציה לקריאת CSV עם פסיקים ומרכאות
     function parseCsvLine(line, delimiter) {
       const values = [];
       let currentValue = '';
