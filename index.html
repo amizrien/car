@@ -313,6 +313,14 @@
     let totalProducts = 0;
     let translatedCount = 0;
 
+    // ===============================================================
+    //  פרטי השותפות שלך באדמיטד (החלף את ה-XXXX וה-YYYY במספרים שלך)
+    //  אפשר למצוא אותם באדמיטד -> כלים -> קישורים קצרים -> יצירת קישור
+    // ===============================================================
+    const campaignId  = 'XXXX';   <-- החלף במספר הקמפיין שלך
+    const adSpaceId   = 'YYYY';   <-- החלף במספר ה-Ad Space שלך
+    // ===============================================================
+
     async function translateText(text) {
       if (!text) return text;
       try {
@@ -339,23 +347,19 @@
       }, 2500);
     }
 
-    // ===========================================
-    // פונקציית קיצור קישורים - הפעם בלי לנסות "לנקות"!
-    // ===========================================
+    // ===============================================================
+    // פונקציית קיצור קישורים (משתמשת ב-API הרשמי של Admitad!)
+    // ===============================================================
     async function shortenUrl(longUrl) {
       try {
-        // שליחה ישירה של הקישור הארוך כמו שהוא ל-TinyURL
-        const response = await fetch(`https://tinyurl.com/api-create.php?url=${encodeURIComponent(longUrl)}`);
-        if (response.ok) {
-          const shortUrl = await response.text();
-          if (shortUrl && shortUrl.startsWith('http')) {
-            return shortUrl;
-          }
-        }
+        // בונים את הקישור לקצר של Admitad
+        const encodedUrl = encodeURIComponent(longUrl);
+        const apiUrl = `https://ad.admitad.com/g/${campaignId}/${adSpaceId}/?ulp=${encodedUrl}`;
+        return apiUrl; // מחזירים את הקישור הקצר של אדמיטד שנוצר
       } catch (e) {
         console.warn("כשל בקיצור הקישור:", e);
+        return longUrl;
       }
-      return longUrl;
     }
 
     async function copyToClipboard(url) {
@@ -363,7 +367,7 @@
       
       if (navigator.clipboard && navigator.clipboard.writeText) {
         navigator.clipboard.writeText(shortUrl).then(() => {
-          showToast('✅ קישור קצר הועתק בהצלחה!');
+          showToast('✅ קישור אדמיטד קצר הועתק!');
         }).catch(() => {
           fallbackCopy(shortUrl);
         });
@@ -383,9 +387,9 @@
       try {
         textarea.select();
         document.execCommand('copy');
-        showToast('✅ קישור קצר הועתק בהצלחה!');
+        showToast('✅ קישור אדמיטד קצר הועתק!');
       } catch (err) {
-        showToast('❌ לא הצלחנו להעתיק את הקישור', false);
+        showToast('❌ לא הצלחנו להעתיק', false);
         console.error('שגיאת העתקה:', err);
       } finally {
         document.body.removeChild(textarea);
@@ -400,9 +404,7 @@
       
       window.open(waUrl, '_blank', 'noopener,noreferrer');
     }
-    // ===========================================
-    // סוף פונקציות הקיצור
-    // ===========================================
+    // ===============================================================
 
     function createProductCard(item) {
       const card = document.createElement('div');
