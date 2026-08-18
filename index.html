@@ -3,44 +3,276 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>קטלוג הדילים והמבצעים</title>
+    <title>קטלוג הדילים והמבצעים - AliExpress Affiliate</title>
     <!-- PapaParse לקריאת קובצי CSV -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
     <style>
-        body { font-family: system-ui, -apple-system, sans-serif; background-color: #f4f5f7; margin: 0; padding: 20px; text-align: right; }
-        .container { max-width: 1100px; margin: 0 auto; }
-        h1 { text-align: center; color: #222; }
-        .controls { display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; }
-        input, select { padding: 12px; border: 1px solid #ccc; border-radius: 8px; font-size: 16px; flex: 1; min-width: 200px; }
-        .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 20px; }
-        .card { background: #fff; border-radius: 12px; padding: 15px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); display: flex; flex-direction: column; justify-content: space-between; }
-        .card img { width: 100%; height: 180px; object-fit: cover; border-radius: 8px; }
-        .card h3 { font-size: 15px; margin: 10px 0; height: 40px; overflow: hidden; color: #333; }
-        .price { font-size: 18px; font-weight: bold; color: #e62e04; margin-bottom: 12px; }
-        .btn { display: block; text-align: center; background: #ff4747; color: #fff; padding: 10px; text-decoration: none; border-radius: 6px; font-weight: bold; }
-        .btn:hover { background: #d93838; }
-        #file-input { display: none; }
-        .upload-label { background: #28a745; color: white; padding: 12px 20px; border-radius: 8px; cursor: pointer; font-weight: bold; }
+        :root {
+            --primary-color: #ff4747;
+            --primary-hover: #d93838;
+            --bg-color: #f4f5f7;
+            --card-bg: #ffffff;
+            --text-color: #222222;
+            --secondary-text: #666666;
+            --price-color: #e62e04;
+            --whatsapp-color: #25d366;
+            --telegram-color: #0088cc;
+        }
+
+        body {
+            font-family: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 20px;
+            direction: rtl;
+            text-align: right;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 25px;
+        }
+
+        h1 {
+            margin: 0 0 10px 0;
+            font-size: 28px;
+            color: #111;
+        }
+
+        p.subtitle {
+            margin: 0;
+            color: var(--secondary-text);
+            font-size: 15px;
+        }
+
+        .controls {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 25px;
+            flex-wrap: wrap;
+            align-items: center;
+            background: #fff;
+            padding: 15px;
+            border-radius: 12px;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+        }
+
+        input[type="text"] {
+            padding: 12px 16px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 15px;
+            flex: 1;
+            min-width: 220px;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        input[type="text"]:focus {
+            border-color: var(--primary-color);
+        }
+
+        #file-input {
+            display: none;
+        }
+
+        .upload-label {
+            background: #28a745;
+            color: white;
+            padding: 12px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 15px;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            transition: background 0.2s;
+            user-select: none;
+        }
+
+        .upload-label:hover {
+            background: #218838;
+        }
+
+        .stats-bar {
+            margin-bottom: 15px;
+            font-size: 14px;
+            color: var(--secondary-text);
+            display: none;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 20px;
+        }
+
+        .card {
+            background: var(--card-bg);
+            border-radius: 12px;
+            padding: 15px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.12);
+        }
+
+        .card-img-wrap {
+            width: 100%;
+            height: 180px;
+            overflow: hidden;
+            border-radius: 8px;
+            background: #f0f0f0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .card img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .card h3 {
+            font-size: 14px;
+            margin: 12px 0 8px 0;
+            height: 40px;
+            overflow: hidden;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            color: #333;
+            line-height: 1.4;
+        }
+
+        .price-wrap {
+            display: flex;
+            align-items: baseline;
+            gap: 8px;
+            margin-bottom: 12px;
+        }
+
+        .price {
+            font-size: 19px;
+            font-weight: bold;
+            color: var(--price-color);
+        }
+
+        .original-price {
+            font-size: 13px;
+            color: #999;
+            text-decoration: line-through;
+        }
+
+        .action-buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .btn {
+            display: block;
+            text-align: center;
+            background: var(--primary-color);
+            color: #fff;
+            padding: 10px;
+            text-decoration: none;
+            border-radius: 6px;
+            font-weight: bold;
+            font-size: 14px;
+            transition: background 0.2s;
+            border: none;
+            cursor: pointer;
+        }
+
+        .btn:hover {
+            background: var(--primary-hover);
+        }
+
+        .share-row {
+            display: flex;
+            gap: 6px;
+        }
+
+        .btn-share {
+            flex: 1;
+            padding: 8px;
+            font-size: 12px;
+            font-weight: bold;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 4px;
+            transition: opacity 0.2s;
+        }
+
+        .btn-share:hover {
+            opacity: 0.9;
+        }
+
+        .btn-whatsapp { background-color: var(--whatsapp-color); }
+        .btn-telegram { background-color: var(--telegram-color); }
+        .btn-copy { background-color: #6c757d; }
+
+        .toast {
+            position: fixed;
+            bottom: 20px;
+            right: 50%;
+            transform: translateX(50%);
+            background: rgba(0,0,0,0.85);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 20px;
+            font-size: 14px;
+            display: none;
+            z-index: 1000;
+        }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h1>🔥 הדילים החמים ביותר</h1>
+    <header>
+        <h1>🔥 קטלוג המבצעים והדילים</h1>
+        <p class="subtitle">טען את קובץ ה-CSV מ-Ad Center לצפייה בדילים ושיתוף מהיר</p>
+    </header>
     
     <div class="controls">
-        <label for="file-input" class="upload-label">📁 טען קובץ CSV מ-Ad Center</label>
+        <label for="file-input" class="upload-label">
+            📁 טען קובץ CSV מ-Ad Center
+        </label>
         <input type="file" id="file-input" accept=".csv">
-        <input type="text" id="search" placeholder="חפש מוצר..." oninput="filterProducts()">
+        <input type="text" id="search" placeholder="חפש מוצר לפי שם..." oninput="filterProducts()">
     </div>
+
+    <div id="stats-bar" class="stats-bar"></div>
 
     <div id="product-grid" class="grid"></div>
 </div>
 
+<div id="toast" class="toast">הקישור הועתק בהצלחה!</div>
+
 <script>
     let allProducts = [];
 
-    // טעינת הקובץ שהורדת מ-AliExpress
     document.getElementById('file-input').addEventListener('change', function(e) {
         const file = e.target.files[0];
         if (!file) return;
@@ -50,32 +282,77 @@
             skipEmptyLines: true,
             complete: function(results) {
                 allProducts = results.data;
+                const stats = document.getElementById('stats-bar');
+                stats.style.display = 'block';
+                stats.innerText = `נטענו ${allProducts.length} מוצרים בהצלחה.`;
                 renderProducts(allProducts);
             }
         });
     });
 
+    // פונקציית עזר למציאת ערך לפי מספר שמות עמודה אפשריים
+    function getFieldValue(item, possibleKeys) {
+        for (let key of possibleKeys) {
+            const foundKey = Object.keys(item).find(k => k.trim().toLowerCase() === key.toLowerCase());
+            if (foundKey && item[foundKey]) {
+                return item[foundKey];
+            }
+        }
+        return '';
+    }
+
     function renderProducts(products) {
         const grid = document.getElementById('product-grid');
         grid.innerHTML = '';
 
-        products.slice(0, 40).forEach(item => {
-            // הנגשת שדות מתוך קובץ ה-CSV הסטנדרטי של אליאקספרס
-            const title = item['Product Title'] || item['title'] || 'מוצר ללא שם';
-            const image = item['Product Image URL'] || item['image_url'] || '';
-            const price = item['Target Sale Price'] || item['price'] || '';
-            const promotionUrl = item['Promotion Url'] || item['link'] || '#';
+        if (products.length === 0) {
+            grid.innerHTML = '<p style="grid-column: 1/-1; text-align: center; color: #777;">לא נמצאו מוצרים.</p>';
+            return;
+        }
+
+        products.slice(0, 100).forEach(item => {
+            // מיפוי שדות מהקובץ
+            const title = getFieldValue(item, ['Product Detail Url', 'Product Title', 'title', 'Product Name', 'subject']) || 'מוצר ללא שם';
+            const image = getFieldValue(item, ['Image Url', 'Product Image URL', 'image_url', 'ImageUrl']);
+            const price = getFieldValue(item, ['Discount Price', 'Target Sale Price', 'price', 'Sale Price']);
+            const origPrice = getFieldValue(item, ['Origin Price', 'Original Price']);
+            const currency = getFieldValue(item, ['Currency']) || 'ILS';
+            const promotionUrl = getFieldValue(item, ['Promotion Link', 'Promotion Url', 'link', 'URL']) || '#';
+
+            const formattedPrice = price ? `${price} ${currency}` : '';
+            const formattedOrigPrice = origPrice ? `${origPrice} ${currency}` : '';
+
+            // טקסט מוכן לשיתוף
+            const shareText = `🔥 **דיל שווה ב-AliExpress!**\n🛍️ ${title}\n💰 מחיר: ${formattedPrice}\n👉 לרכישה: ${promotionUrl}`;
 
             const card = document.createElement('div');
             card.className = 'card';
             card.innerHTML = `
                 <div>
-                    <img src="${image}" alt="${title}" loading="lazy">
+                    <div class="card-img-wrap">
+                        ${image ? `<img src="${image}" alt="${title}" loading="lazy">` : '<span>אין תמונה</span>'}
+                    </div>
                     <h3>${title}</h3>
                 </div>
                 <div>
-                    <div class="price">${price ? price + ' $' : ''}</div>
-                    <a href="${promotionUrl}" target="_blank" rel="nofollow sponsored" class="btn">לרכישה במבצע</a>
+                    <div class="price-wrap">
+                        <span class="price">${formattedPrice}</span>
+                        ${formattedOrigPrice ? `<span class="original-price">${formattedOrigPrice}</span>` : ''}
+                    </div>
+                    <div class="action-buttons">
+                        <a href="${promotionUrl}" target="_blank" rel="nofollow sponsored" class="btn">לרכישה באליאקספרס</a>
+                        <div class="share-row">
+                            <button class="btn-share btn-whatsapp" onclick="shareWhatsApp('${escapeJs(title)}', '${formattedPrice}', '${promotionUrl}')">
+                                WhatsApp
+                            </button>
+                            <button class="btn-share btn-telegram" onclick="shareTelegram('${escapeJs(title)}', '${formattedPrice}', '${promotionUrl}')">
+                                Telegram
+                            </button>
+                            <button class="btn-share btn-copy" onclick="copyShareText('${escapeJs(shareText)}')">
+                                העתק
+                            </button>
+                        </div>
+                    </div>
                 </div>
             `;
             grid.appendChild(card);
@@ -85,10 +362,42 @@
     function filterProducts() {
         const query = document.getElementById('search').value.toLowerCase();
         const filtered = allProducts.filter(p => {
-            const title = (p['Product Title'] || p['title'] || '').toLowerCase();
+            const title = (getFieldValue(p, ['Product Detail Url', 'Product Title', 'title', 'Product Name'])).toLowerCase();
             return title.includes(query);
         });
         renderProducts(filtered);
+    }
+
+    // פונקציות שיתוף
+    function escapeJs(str) {
+        return str.replace(/'/g, "\\'").replace(/"/g, '&quot;').replace(/\n/g, ' ');
+    }
+
+    function shareWhatsApp(title, price, url) {
+        const text = `🔥 *דיל שווה ב-AliExpress!*\n\n🛍️ ${title}\n💰 מחיר: ${price}\n\n👉 לרכישה לחצו כאן: ${url}`;
+        window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`, '_blank');
+    }
+
+    function shareTelegram(title, price, url) {
+        const text = `🔥 **דיל שווה ב-AliExpress!**\n\n🛍️ ${title}\n💰 מחיר: ${price}\n\n👉 לרכישה: ${url}`;
+        window.open(`https://t.me/share/url?url=${encodeURIComponent(url)}&text=${encodeURIComponent(text)}`, '_blank');
+    }
+
+    function copyShareText(text) {
+        navigator.clipboard.writeText(text).then(() => {
+            showToast("הטקסט והקישור הועתקו ללוח!");
+        }).catch(() => {
+            showToast("שגיאה בהעתקה");
+        });
+    }
+
+    function showToast(msg) {
+        const toast = document.getElementById('toast');
+        toast.innerText = msg;
+        toast.style.display = 'block';
+        setTimeout(() => {
+            toast.style.display = 'none';
+        }, 2500);
     }
 </script>
 
