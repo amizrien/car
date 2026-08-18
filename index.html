@@ -78,41 +78,10 @@
             border-color: var(--primary-color);
         }
 
-        #file-input {
-            display: none;
-        }
-
-        .upload-label, .btn-translate {
-            background: #28a745;
-            color: white;
-            padding: 12px 20px;
-            border-radius: 8px;
-            cursor: pointer;
-            font-weight: bold;
-            font-size: 15px;
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            transition: background 0.2s;
-            user-select: none;
-            border: none;
-        }
-
-        .upload-label:hover { background: #218838; }
-
-        .btn-translate {
-            background: #007bff;
-            display: none;
-        }
-
-        .btn-translate:hover { background: #0056b3; }
-        .btn-translate:disabled { background: #ccc; cursor: not-allowed; }
-
         .stats-bar {
             margin-bottom: 15px;
             font-size: 14px;
             color: var(--secondary-text);
-            display: none;
         }
 
         .grid {
@@ -255,44 +224,44 @@
 <div class="container">
     <header>
         <h1>🔥 קטלוג המבצעים והדילים</h1>
-        <p class="subtitle">טען את קובץ ה-CSV מ-Ad Center לצפייה בדילים ושיתוף מהיר</p>
+        <p class="subtitle">הדילים הכי שווים ב-AliExpress מתעדכנים פה בלייב</p>
     </header>
     
     <div class="controls">
-        <label for="file-input" class="upload-label">
-            📁 טען קובץ CSV
-        </label>
-        <input type="file" id="file-input" accept=".csv">
-        <button id="translate-btn" class="btn-translate" onclick="translateAllProducts()">🌐 תרגם מוצרים לעברית</button>
         <input type="text" id="search" placeholder="חפש מוצר..." oninput="filterProducts()">
     </div>
 
-    <div id="stats-bar" class="stats-bar"></div>
+    <div id="stats-bar" class="stats-bar">טוען מוצרים...</div>
     <div id="product-grid" class="grid"></div>
 </div>
 
 <div id="toast" class="toast">הקישור הועתק בהצלחה!</div>
 
 <script>
+    // שם הקובץ ב-GitHub (ודא שהקובץ מועלה בשם הזה בדיוק)
+    const CSV_FILE_PATH = 'products.csv';
     let allProducts = [];
 
-    document.getElementById('file-input').addEventListener('change', function(e) {
-        const file = e.target.files[0];
-        if (!file) return;
-
-        Papa.parse(file, {
+    // טעינת הקובץ אוטומטית בעת פתיחת הדף
+    window.addEventListener('DOMContentLoaded', () => {
+        Papa.parse(CSV_FILE_PATH, {
+            download: true,
             header: true,
             skipEmptyLines: true,
             complete: function(results) {
                 allProducts = results.data;
-                const stats = document.getElementById('stats-bar');
-                const translateBtn = document.getElementById('translate-btn');
+                document.getElementById('stats-bar').innerText = `נטענו ${allProducts.length} מוצרים. מתחיל תרגום אוטומטי...`;
                 
-                stats.style.display = 'block';
-                stats.innerText = `נטענו ${allProducts.length} מוצרים בהצלחה.`;
-                translateBtn.style.display = 'inline-flex';
-                
+                // טעינת תרגומים קודמים מהזיכרון של המכשיר
+                loadCachedTranslations();
                 renderProducts(allProducts);
+                
+                // תרגום אוטומטי ברקע
+                translateAllProducts();
+            },
+            error: function(err) {
+                document.getElementById('stats-bar').innerText = 'שגיאה בטעינת הקובץ products.csv מ-GitHub';
+                console.error(err);
             }
         });
     });
@@ -325,7 +294,6 @@
             const origPrice = getFieldValue(item, ['Origin Price', 'Original Price']);
             const promotionUrl = getFieldValue(item, ['Promotion Link', 'Direct Link', 'Promotion Url', 'link', 'URL']) || '#';
 
-            // מנקה סימני מטבע קודמים כמו ILS או $ במידה שקיימים במחיר מה-CSV ומציג ₪
             const cleanPrice = price ? price.toString().replace(/ILS|\$|₪/gi, '').trim() : '';
             const cleanOrigPrice = origPrice ? origPrice.toString().replace(/ILS|\$|₪/gi, '').trim() : '';
 
@@ -362,12 +330,24 @@
         });
     }
 
-    async function translateAllProducts() {
-        const btn = document.getElementById('translate-btn');
-        btn.disabled = true;
-        btn.innerText = 'מתרגם... אנא המתן';
+    // שמישת זיכרון מקומי לשמירת תרגומים (כדי שלא נתרגם שוב ושוב בכל רענון)
+    function loadCachedTranslations() {
+        const cache = localStorage.getItem('product_translations');
+        if (cache) {
+            const translations = JSON.parse(cache);
+            allProducts.forEach(item => {
+                const orig = getFieldValue(item, ['Product Desc', 'Product Description', 'Product Title', 'title']);
+                if (translations[orig]) {
+                    item.translated_title = translations[orig];
+                }
+            });
+        }
+    }
 
+    async function translateAllProducts() {
+        const cache = JSON.parse(localStorage.getItem('product_translations') || '{}');
         const itemsToTranslate = allProducts.slice(0, 100);
+        let updated = false;
 
         for (let i = 0; i < itemsToTranslate.length; i++) {
             const item = itemsToTranslate[i];
@@ -381,6 +361,8 @@
                     
                     if (data && data.responseData && data.responseData.translatedText) {
                         item.translated_title = data.responseData.translatedText;
+                        cache[originalTitle] = item.translated_title;
+                        updated = true;
                     }
                 } catch (e) {
                     console.error('שגיאה בתרגום מוצר', e);
@@ -388,11 +370,13 @@
             }
         }
 
-        btn.disabled = false;
-        btn.innerText = '✔ המוצרים תורגמו!';
-        
-        // ממרנדר מחדש את הכל כדי שגם כפתורי השיתוף יכילו את הטקסט בעברית
-        renderProducts(allProducts);
+        if (updated) {
+            localStorage.setItem('product_translations', JSON.stringify(cache));
+            document.getElementById('stats-bar').innerText = `נטענו ${allProducts.length} מוצרים מתורגמים!`;
+            renderProducts(allProducts);
+        } else {
+            document.getElementById('stats-bar').innerText = `נטענו ${allProducts.length} מוצרים.`;
+        }
     }
 
     function filterProducts() {
