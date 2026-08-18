@@ -310,13 +310,13 @@
         }
 
         products.slice(0, 100).forEach(item => {
-            // מיפוי שדות מהקובץ: העמודה המכילה את שם המוצר באקסל שלך
-            const title = getFieldValue(item, ['Product Description', 'Product Title', 'title', 'Product Name', 'subject']) || 'מוצר ללא שם';
+            // התאמה מדויקת לעמודה Product Desc מהאקסל שלך
+            const title = getFieldValue(item, ['Product Desc', 'Product Description', 'Product Title', 'title', 'Product Name', 'subject']) || 'מוצר ללא שם';
             const image = getFieldValue(item, ['Image Url', 'Product Image URL', 'image_url', 'ImageUrl']);
-            const price = getFieldValue(item, ['Discount Price', 'Target Sale Price', 'price', 'Sale Price']);
+            const price = getFieldValue(item, ['Discount Price', 'Discount', 'Target Sale Price', 'price', 'Sale Price']);
             const origPrice = getFieldValue(item, ['Origin Price', 'Original Price']);
             const currency = getFieldValue(item, ['Currency']) || 'ILS';
-            const promotionUrl = getFieldValue(item, ['Promotion Link', 'Promotion Url', 'link', 'URL']) || '#';
+            const promotionUrl = getFieldValue(item, ['Promotion Link', 'Direct Link', 'Promotion Url', 'link', 'URL']) || '#';
 
             const formattedPrice = price ? `${price} ${currency}` : '';
             const formattedOrigPrice = origPrice ? `${origPrice} ${currency}` : '';
@@ -361,7 +361,7 @@
     function filterProducts() {
         const query = document.getElementById('search').value.toLowerCase();
         const filtered = allProducts.filter(p => {
-            const title = (getFieldValue(p, ['Product Description', 'Product Title', 'title', 'Product Name'])).toLowerCase();
+            const title = (getFieldValue(p, ['Product Desc', 'Product Description', 'Product Title', 'title', 'Product Name'])).toLowerCase();
             return title.includes(query);
         });
         renderProducts(filtered);
