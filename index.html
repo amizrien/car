@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>קטלוג מוצרים</title>
   
-  <!-- אייקונים של FontAwesome לכפתורי השיתוף -->
+  <!-- אייקונים של FontAwesome -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
   <style>
@@ -16,17 +16,51 @@
       padding: 20px;
     }
 
-    /* סרגל עליון לתרגום גוגל */
+    .main-header {
+      max-width: 1200px;
+      margin: 0 auto 20px auto;
+      text-align: center;
+    }
+
+    .main-header h1 {
+      margin-bottom: 15px;
+      color: #222;
+    }
+
+    /* סרגל עליון לחיפוש ותרגום */
     .top-bar {
       max-width: 1200px;
       margin: 0 auto 20px auto;
       display: flex;
-      justify-content: flex-between;
+      flex-wrap: wrap;
+      justify-content: space-between;
       align-items: center;
+      gap: 15px;
       background: #fff;
-      padding: 10px 15px;
+      padding: 15px;
       border-radius: 8px;
       box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+    }
+
+    .search-box {
+      flex: 1;
+      min-width: 250px;
+      position: relative;
+    }
+
+    .search-box input {
+      width: 100%;
+      padding: 10px 15px;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      font-size: 14px;
+      box-sizing: border-box;
+    }
+
+    .translate-box {
+      display: flex;
+      align-items: center;
+      gap: 10px;
     }
 
     .products-grid {
@@ -109,7 +143,6 @@
       background-color: #e03232;
     }
 
-    /* כפתורי הפעולות הוספת (שיתוף/העתקה) */
     .action-buttons {
       display: flex;
       gap: 8px;
@@ -127,6 +160,8 @@
       align-items: center;
       justify-content: center;
       gap: 5px;
+      text-decoration: none;
+      color: #333;
       transition: background 0.2s;
     }
 
@@ -139,7 +174,7 @@
     }
   </style>
 
-  <!-- סקריפט תרגום של Google Translate -->
+  <!-- סקריפט תרגום Google -->
   <script type="text/javascript">
     function googleTranslateElementInit() {
       new google.translate.TranslateElement({
@@ -153,18 +188,30 @@
 </head>
 <body>
 
-  <!-- סרגל עליון עם רכיב תרגום -->
-  <div class="top-bar">
-    <span>תרגום שפת האתר:</span>
-    <div id="google_translate_element"></div>
+  <!-- כותרת ראשית -->
+  <div class="main-header">
+    <h1>קטלוג מוצרים מומלצים</h1>
   </div>
 
+  <!-- סרגל חיפוש ותרגום -->
+  <div class="top-bar">
+    <div class="search-box">
+      <input type="text" id="searchInput" placeholder="חפש מוצר..." onkeyup="filterProducts()">
+    </div>
+    <div class="translate-box">
+      <span>תרגום שפה:</span>
+      <div id="google_translate_element"></div>
+    </div>
+  </div>
+
+  <!-- גריד מוצרים -->
   <div id="products-container" class="products-grid">
     <p>טוען מוצרים...</p>
   </div>
 
   <script>
     const csvUrl = 'products.csv';
+    let allProducts = [];
 
     async function loadProducts() {
       try {
@@ -183,8 +230,7 @@
         const oldPriceIdx = headers.indexOf('oldprice');
         const currencyIdx = headers.indexOf('currencyid');
 
-        const container = document.getElementById('products-container');
-        container.innerHTML = '';
+        allProducts = [];
 
         for (let i = 1; i < lines.length; i++) {
           const line = lines[i].trim();
@@ -199,46 +245,69 @@
           const oldPrice = oldPriceIdx !== -1 ? cols[oldPriceIdx] : '';
           const currency = currencyIdx !== -1 ? cols[currencyIdx] : '$';
 
-          if (!title || !url || !image) continue;
-
-          const card = document.createElement('div');
-          card.className = 'product-card';
-
-          const currencySymbol = (currency === 'USD' || !currency) ? '$' : currency;
-
-          let priceHTML = '';
-          if (oldPrice && parseFloat(oldPrice) > parseFloat(price)) {
-            priceHTML = `<span class="old-price">${currencySymbol}${oldPrice}</span> `;
+          if (title && url && image) {
+            allProducts.push({ title, url, image, price, oldPrice, currency });
           }
-          if (price) {
-            priceHTML += `<span class="current-price">${currencySymbol}${price}</span>`;
-          }
-
-          // קישור שיתוף ל-WhatsApp
-          const waShareUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(title + ' - ' + url)}`;
-
-          card.innerHTML = `
-            <img src="${image}" alt="${title}" loading="lazy" referrerpolicy="no-referrer">
-            <div class="product-title" title="${title}">${title}</div>
-            <div class="price-container">${priceHTML}</div>
-            <a href="${url}" target="_blank" rel="nofollow" class="buy-btn">לצפייה במוצר</a>
-            
-            <div class="action-buttons">
-              <a href="${waShareUrl}" target="_blank" class="action-btn btn-wa" title="שתף ב-WhatsApp">
-                <i class="fab fa-whatsapp"></i> שתף
-              </a>
-              <button class="action-btn" onclick="copyToClipboard('${url}')" title="העתק קישור">
-                <i class="far fa-copy"></i> העתק
-              </button>
-            </div>
-          `;
-
-          container.appendChild(card);
         }
+
+        renderProducts(allProducts);
+
       } catch (err) {
         console.error('שגיאה בטעינת הקובץ:', err);
         document.getElementById('products-container').innerHTML = '<p>אירעה שגיאה בטעינת המוצרים.</p>';
       }
+    }
+
+    function renderProducts(products) {
+      const container = document.getElementById('products-container');
+      container.innerHTML = '';
+
+      if (products.length === 0) {
+        container.innerHTML = '<p>לא נמצאו מוצרים תואמים.</p>';
+        return;
+      }
+
+      products.forEach(item => {
+        const card = document.createElement('div');
+        card.className = 'product-card';
+
+        const currencySymbol = (item.currency === 'USD' || !item.currency) ? '$' : item.currency;
+
+        let priceHTML = '';
+        if (item.oldPrice && parseFloat(item.oldPrice) > parseFloat(item.price)) {
+          priceHTML = `<span class="old-price">${currencySymbol}${item.oldPrice}</span> `;
+        }
+        if (item.price) {
+          priceHTML += `<span class="current-price">${currencySymbol}${item.price}</span>`;
+        }
+
+        const waShareUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(item.title + ' - ' + item.url)}`;
+
+        card.innerHTML = `
+          <img src="${item.image}" alt="${item.title}" loading="lazy" referrerpolicy="no-referrer">
+          <div class="product-title" title="${item.title}">${item.title}</div>
+          <div class="price-container">${priceHTML}</div>
+          <a href="${item.url}" target="_blank" rel="nofollow" class="buy-btn">לצפייה במוצר</a>
+          
+          <div class="action-buttons">
+            <a href="${waShareUrl}" target="_blank" class="action-btn btn-wa" title="שתף ב-WhatsApp">
+              <i class="fab fa-whatsapp"></i> שתף
+            </a>
+            <button class="action-btn" onclick="copyToClipboard('${item.url}')" title="העתק קישור">
+              <i class="far fa-copy"></i> העתק
+            </button>
+          </div>
+        `;
+
+        container.appendChild(card);
+      });
+    }
+
+    // סינון מוצרים בזמן אמת לפי תיבת החיפוש
+    function filterProducts() {
+      const query = document.getElementById('searchInput').value.toLowerCase();
+      const filtered = allProducts.filter(p => p.title.toLowerCase().includes(query));
+      renderProducts(filtered);
     }
 
     function copyToClipboard(text) {
